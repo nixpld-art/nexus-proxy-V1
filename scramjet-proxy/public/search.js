@@ -20,6 +20,8 @@ function search(input, template) {
 		const url = new URL(`http://${input}`);
 		// only if the hostname has a TLD/subdomain
 		if (url.hostname.includes(".")) return url.toString();
+		// also accept localhost and IP addresses
+		if (url.hostname === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(url.hostname)) return url.toString();
 	} catch (err) {
 		// input was not valid URL
 	}
