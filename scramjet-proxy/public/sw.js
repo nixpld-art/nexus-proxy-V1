@@ -21,6 +21,10 @@ function stripHeaders(response) {
 }
 
 async function handleRequest(event) {
+	const url = new URL(event.request.url);
+	if (url.hostname === "www.youtube.com" || url.hostname === "i.ytimg.com") {
+		return fetch(event.request);
+	}
 	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
 		const response = await scramjet.fetch(event);

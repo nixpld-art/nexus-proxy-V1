@@ -1168,7 +1168,7 @@ const frogMusicBtn = document.getElementById("frog-music-btn");
 
 let ytRetries = 0;
 let ytLoading = false;
-const YT_MAX_RETRIES = 3;
+const YT_MAX_RETRIES = 5;
 function loadYouTubeAPI() {
     if (typeof YT !== "undefined" && YT.Player) { onYouTubeIframeAPIReady(); return; }
     if (ytLoading) return;
@@ -1184,8 +1184,13 @@ function loadYouTubeAPI() {
         ytLoading = false;
         setTimeout(loadYouTubeAPI, 3000);
     };
-    const first = document.getElementsByTagName("script")[0];
-    first.parentNode.insertBefore(tag, first);
+    tag.onload = () => {
+        if (typeof YT === "undefined" || !YT.Player) {
+            ytLoading = false;
+            setTimeout(loadYouTubeAPI, 2000);
+        }
+    };
+    document.head.appendChild(tag);
 }
 
 function onYouTubeIframeAPIReady() {
@@ -1210,6 +1215,7 @@ function onYouTubeIframeAPIReady() {
         }
     });
 }
+window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
 function onPlayerError(e) {
     if (musicIndex >= 0 && musicIndex < musicQueue.length) {
