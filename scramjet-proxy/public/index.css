@@ -1834,6 +1834,16 @@ html, body {
     pointer-events: none;
     transform: translateY(10px);
 }
+#music-player.music-api-failed::after {
+    content: "YouTube player blocked — try disabling adblocker";
+    display: block;
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 11px;
+    background: rgba(255,60,60,0.15);
+    color: #ff6b6b;
+    border-top: 1px solid rgba(255,60,60,0.2);
+}
 
 /* Header */
 #music-header {

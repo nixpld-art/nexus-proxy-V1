@@ -1166,15 +1166,30 @@ const musicQueueList = document.getElementById("music-queue-list");
 const musicQueueCount = document.getElementById("music-queue-count");
 const frogMusicBtn = document.getElementById("frog-music-btn");
 
+let ytRetries = 0;
+let ytLoading = false;
+const YT_MAX_RETRIES = 3;
 function loadYouTubeAPI() {
     if (typeof YT !== "undefined" && YT.Player) { onYouTubeIframeAPIReady(); return; }
+    if (ytLoading) return;
+    if (ytRetries >= YT_MAX_RETRIES) {
+        document.getElementById("music-player")?.classList.add("music-api-failed");
+        return;
+    }
+    ytLoading = true;
+    ytRetries++;
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
+    tag.onerror = () => {
+        ytLoading = false;
+        setTimeout(loadYouTubeAPI, 3000);
+    };
     const first = document.getElementsByTagName("script")[0];
     first.parentNode.insertBefore(tag, first);
 }
 
 function onYouTubeIframeAPIReady() {
+    ytLoading = false;
     ytPlayer = new YT.Player("music-youtube-player", {
         height: "0",
         width: "0",
