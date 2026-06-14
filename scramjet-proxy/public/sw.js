@@ -22,12 +22,19 @@ function stripHeaders(response) {
 
 async function handleRequest(event) {
 	const url = new URL(event.request.url);
-	if (url.hostname.endsWith("youtube.com") || url.hostname.endsWith("ytimg.com") || url.hostname.endsWith("googlevideo.com") || url.hostname.endsWith("ggpht.com")) {
+	// YouTube media/subresources go direct (not through proxy)
+	if (url.hostname.endsWith("ytimg.com") || url.hostname.endsWith("googlevideo.com") || url.hostname.endsWith("ggpht.com")) {
 		return fetch(event.request);
 	}
 	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
-		const response = await scramjet.fetch(event);
+		let response = await scramjet.fetch(event);
+		// Inject consent bypass into YouTube HTML pages served through the proxy
+		if (event.request.url.includes("youtube.com") && response.headers.get("content-type")?.includes("text/html")) {
+			const text = await response.text();
+			const patched = text.replace("</head>", '<script>function ac(){let b=document.querySelector(\'[aria-label="Accept all"], [aria-label="Accept all"]\');if(b){b.click();clearInterval(i)}}let i=setInterval(ac,100);setTimeout(()=>clearInterval(i),5000);<\/script></head>');
+			response = new Response(patched, { status: response.status, statusText: response.statusText, headers: response.headers });
+		}
 		return stripHeaders(response);
 	}
 	const response = await fetch(event.request);
