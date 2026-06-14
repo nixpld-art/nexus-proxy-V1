@@ -271,15 +271,12 @@ function updateFrogUrl(tab) {
 
 /* Frogie's bar — bottom popup, toggled by page-fold button */
 const frogBar = document.getElementById("frog-bar");
-const frogToggle = document.getElementById("frog-toggle");
-
 let frogVisible = false;
 
 function showFrogBar() {
     if (frogVisible) return;
     frogVisible = true;
     frogBar.classList.add("visible");
-    frogToggle.classList.add("active");
     clearTimeout(frogHideTimeout);
 }
 
@@ -289,17 +286,7 @@ function hideFrogBar(force) {
     if (document.activeElement && document.activeElement.id === "frog-url") return;
     frogVisible = false;
     frogBar.classList.remove("visible");
-    frogToggle.classList.remove("active");
 }
-
-frogToggle.addEventListener("click", () => {
-    if (currentView === "proxy") {
-        if (frogVisible) { hideFrogBar(true); }
-        else { showFrogBar(); }
-    } else {
-        toggleMusicVisibility();
-    }
-});
 
 document.getElementById("frog-url").addEventListener("focus", showFrogBar);
 document.getElementById("frog-url").addEventListener("blur", () => {
@@ -307,7 +294,7 @@ document.getElementById("frog-url").addEventListener("blur", () => {
 });
 
 document.addEventListener("click", (e) => {
-    if (frogVisible && !frogBar.contains(e.target) && e.target !== frogToggle) {
+    if (frogVisible && !frogBar.contains(e.target)) {
         hideFrogBar(true);
     }
 });
@@ -460,8 +447,6 @@ function switchNav(view) {
     if (target) target.classList.add("active");
     document.getElementById("navbar").style.display = view === "proxy" ? "none" : "flex";
     frogBar.classList.remove("visible");
-    frogToggle.classList.remove("active");
-    frogToggle.style.display = "flex";
     if (view !== "proxy") { stopUrlPolling(); }
     if (view === "proxy" && tabs.length > 0) { showFrogBar(); }
 }

@@ -572,47 +572,7 @@ html, body {
 
 /* Frog trigger strip — subtle hover zone at top */
 /* Frogie's page-fold toggle button */
-#frog-toggle {
-    position: fixed;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999999;
-    width: 36px;
-    height: 36px;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    background: rgba(10, 10, 18, 0.75);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    color: var(--muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-}
-
-#frog-toggle:hover {
-    background: rgba(10, 10, 18, 0.9);
-    color: var(--accent);
-    border-color: var(--accent-dim);
-    transform: translateX(-50%) scale(1.08);
-}
-
-#frog-toggle:active {
-    transform: translateX(-50%) scale(0.92);
-}
-
-#frog-toggle svg {
-    display: block;
-    transition: transform 0.3s ease;
-}
-
-#frog-toggle.active svg {
-    transform: rotate(180deg);
-}
+/* frog-toggle removed */
 
 /* Bar visibility is JS-only via .visible class */
 
@@ -1314,8 +1274,6 @@ html, body {
     #frog-url { font-size: 12px; padding: 6px 0; }
     .frog-go-btn { height: 28px; padding: 0 10px; font-size: 11px; }
     .frog-tab { max-width: 100px; font-size: 11px; padding: 3px 6px; }
-    #frog-toggle { width: 32px; height: 32px; bottom: 8px; }
-    #frog-toggle svg { width: 16px; height: 16px; }
     .games-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
     .home-header h1 { font-size: 26px; }
     .quick-apps { gap: 10px; }
@@ -1330,7 +1288,6 @@ html, body {
     .frog-btn { width: 26px; height: 26px; }
     .frog-btn svg { width: 14px; height: 14px; }
     .frog-tab { max-width: 80px; font-size: 10px; padding: 2px 5px; }
-    #frog-toggle { width: 28px; height: 28px; bottom: 6px; }
 }
 
 /* ===== Chat View ===== */
