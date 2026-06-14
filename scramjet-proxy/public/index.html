@@ -1,0 +1,378 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus</title>
+    <link rel="shortcut icon" href="icon.png" />
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js"></script>
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+    <script src="firebase-config.js" defer></script>
+    <script src="register-sw.js" defer></script>
+    <script src="search.js" defer></script>
+    <script src="proxy.js" defer></script>
+    <script src="index.js" defer></script>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="loading-screen">
+        <div class="loader">Nexus</div>
+        <p>loading your experience...</p>
+    </div>
+
+    <div id="app">
+        <nav id="navbar">
+            <div class="nav-left">
+                <span class="nav-logo">Nexus</span>
+            </div>
+            <div class="nav-center">
+                <button class="nav-tab active" data-view="home">Home</button>
+                <button class="nav-tab" data-view="games">Games</button>
+                <button class="nav-tab" data-view="chat">Chat</button>
+                <button class="nav-tab" data-view="ai">AI</button>
+                <button class="nav-tab" data-view="settings">Settings</button>
+            </div>
+            <div class="nav-right">
+                <span class="online-badge">&#9679; online</span>
+            </div>
+        </nav>
+
+        <div id="content">
+            <div id="home-view" class="view active">
+                <div class="home-header">
+                    <h1>Nexus</h1>
+                    <p>pick an app to get started</p>
+                </div>
+                <div class="quick-apps">
+                    <a class="app-icon" data-url="https://youtube.com">
+                        <img src="apps/youtube.png" alt="YouTube" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%23ff4444%22>▶</text></svg>'">
+                        <span>YouTube</span>
+                    </a>
+                    <a class="app-icon" data-url="https://discord.com">
+                        <img src="apps/discord.png" alt="Discord" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22%235865F2%22>♯</text></svg>'">
+                        <span>Discord</span>
+                    </a>
+                    <a class="app-icon" data-url="https://spotify.com">
+                        <img src="apps/spotify.png" alt="Spotify" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22%231DB954%22>♪</text></svg>'">
+                        <span>Spotify</span>
+                    </a>
+                    <a class="app-icon" data-url="https://reddit.com">
+                        <img src="apps/reddit.png" alt="Reddit" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22%23FF4500%22>R</text></svg>'">
+                        <span>Reddit</span>
+                    </a>
+                    <a class="app-icon" data-url="https://twitter.com">
+                        <img src="apps/x.png" alt="X" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22white%22>𝕏</text></svg>'">
+                        <span>X</span>
+                    </a>
+                    <a class="app-icon" data-url="https://tiktok.com">
+                        <img src="apps/tiktok.png" alt="TikTok" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22white%22>♪</text></svg>'">
+                        <span>TikTok</span>
+                    </a>
+                    <a class="app-icon" data-url="https://twitch.tv">
+                        <img src="apps/twitch.png" alt="Twitch" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22%239146FF%22>▶</text></svg>'">
+                        <span>Twitch</span>
+                    </a>
+                    <a class="app-icon" data-url="https://netflix.com">
+                        <img src="apps/netflix.png" alt="Netflix" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a1a2e%22 rx=%2220%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2235%22 fill=%22%23E50914%22>N</text></svg>'">
+                        <span>Netflix</span>
+                    </a>
+                </div>
+                <div class="search-section">
+                    <form id="sj-form">
+                        <input id="sj-search-engine" value="https://duckduckgo.com/?q=%s" type="hidden" />
+                        <div class="search-row">
+                            <input id="sj-address" type="text" placeholder="Search or enter URL..." autofocus />
+                            <button type="submit">Go</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="home-shortcuts" id="homeShortcuts">
+                    <div class="shortcuts-header">
+                        <h3>Shortcuts</h3>
+                        <button id="addShortcutBtn" class="shortcut-add-btn">+ Add</button>
+                    </div>
+                    <div class="shortcuts-grid" id="shortcutsGrid"></div>
+                    <div id="addShortcutModal" class="modal-overlay hidden">
+                        <div class="modal">
+                            <h3>Add Shortcut</h3>
+                            <label>Name
+                                <input id="shortcutNameInput" type="text" maxlength="30" placeholder="Shortcut name" />
+                            </label>
+                            <label>URL
+                                <input id="shortcutUrlInput" type="text" placeholder="https://example.com" />
+                            </label>
+                            <div class="modal-actions">
+                                <button id="cancelShortcut" class="modal-btn ghost">Cancel</button>
+                                <button id="confirmShortcut" class="modal-btn primary">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="proxy-view" class="view">
+                <div id="frame-container"></div>
+            </div>
+
+            <div id="games-view" class="view">
+                <div class="games-top">
+                    <h2>Games</h2>
+                    <p>All <span id="game-count">0</span> games loaded</p>
+                </div>
+                <div id="games-grid" class="games-grid"></div>
+            </div>
+
+            <div id="chat-view" class="view">
+                <div class="chat-layout">
+                    <aside class="chat-sidebar">
+                        <h2>Chat Rooms</h2>
+                        <label>Your name
+                            <input id="chatName" type="text" maxlength="24" placeholder="Nickname" />
+                        </label>
+                        <button class="chat-btn make-room" id="createRoomBtn">Create Room</button>
+                        <label>Join with code
+                            <input id="roomCode" type="text" maxlength="24" placeholder="Enter invite code" />
+                        </label>
+                        <button class="chat-btn join-room" id="joinRoomBtn">Join Room</button>
+                        <button class="chat-btn leave-room" id="leaveRoomBtn">Leave Room</button>
+                        <div class="room-list" id="roomList"></div>
+                    </aside>
+                    <section class="chat-main">
+                        <div class="chat-title">
+                            <div>
+                                <h2 id="activeRoomTitle">No room yet</h2>
+                                <p id="activeRoomMeta">Create or join a room to start chatting.</p>
+                            </div>
+                            <div class="chat-title-actions">
+                                <button class="chat-action-btn" id="clearRoomBtn">Clear</button>
+                            </div>
+                        </div>
+                        <div class="messages" id="messages"></div>
+                        <form id="messageForm" class="message-form">
+                            <input id="messageInput" type="text" placeholder="Message this room" autocomplete="off" />
+                            <button type="submit">Send</button>
+                        </form>
+                    </section>
+                </div>
+            </div>
+
+            <div id="ai-view" class="view">
+                <div class="ai-layout">
+                    <div class="ai-header">
+                        <h2>Nexus AI</h2>
+                        <p>Powered by ChatGPT</p>
+                    </div>
+                    <div class="ai-conversation" id="aiConversation">
+                        <div class="ai-msg ai-welcome">
+                            <div class="ai-msg-content">Hello! I'm Nexus AI. Ask me anything.</div>
+                        </div>
+                    </div>
+                    <form id="aiForm" class="ai-form">
+                        <input id="aiInput" type="text" placeholder="Ask Nexus AI anything..." autocomplete="off" />
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="settings-view" class="view">
+                <div class="settings-top">
+                    <h2>Settings</h2>
+                </div>
+                <div class="settings-body">
+                    <div class="setting-card">
+                        <h3>Theme</h3>
+                        <select id="theme-select">
+                            <option value="nexus">Nexus (Teal)</option>
+                            <option value="midnight">Midnight (Purple)</option>
+                            <option value="inferno">Inferno (Red)</option>
+                            <option value="forest">Forest (Green)</option>
+                            <option value="ocean">Ocean (Blue)</option>
+                            <option value="mono">Monochrome</option>
+                        </select>
+                    </div>
+                    <div class="setting-card">
+                        <h3>Tab Cloak</h3>
+                        <div class="cloak-options">
+                            <button class="cloak-btn" data-cloak="">None</button>
+                            <button class="cloak-btn" data-cloak="google">Google</button>
+                            <button class="cloak-btn" data-cloak="classroom">Classroom</button>
+                            <button class="cloak-btn" data-cloak="drive">Drive</button>
+                        </div>
+                    </div>
+                    <div class="setting-card">
+                        <h3>Auto-Cloak</h3>
+                        <p class="setting-desc">Automatically apply the selected cloak on page load</p>
+                        <label class="toggle-row">
+                            <input type="checkbox" id="autocloak-toggle" />
+                            <span class="toggle-track"><span class="toggle-knob"></span></span>
+                            <span id="autocloak-label">Off</span>
+                        </label>
+                    </div>
+                    <div class="setting-card">
+                        <h3>Proxy Engine</h3>
+                        <p class="setting-desc">Switch proxy backend. Reload recommended after changing.</p>
+                        <select id="proxy-select">
+                            <option value="scramjet">Scramjet</option>
+                        </select>
+                    </div>
+                    <div class="setting-card">
+                        <h3>Search Engine</h3>
+                        <select id="engine-select">
+                            <option value="https://duckduckgo.com/?q=%s" selected>DuckDuckGo</option>
+                            <option value="https://www.google.com/search?q=%s">Google</option>
+                            <option value="https://www.bing.com/search?q=%s">Bing</option>
+                        </select>
+                    </div>
+                    <div class="setting-card">
+                        <h3>Chat Nickname</h3>
+                        <p class="setting-desc">Display name shown in chat rooms</p>
+                        <input type="text" id="settingsNickname" maxlength="24" placeholder="Nickname" />
+                    </div>
+                    <div class="setting-card">
+                        <h3>Chat Rooms</h3>
+                        <p class="setting-desc">Delete all saved rooms and messages</p>
+                        <button id="clearAllRoomsBtn" class="danger-btn">Delete all rooms and messages</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Frogie's toggle button (page-fold icon) -->
+    <button id="frog-toggle" title="Toggle toolbar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 2h14l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+            <path d="M18 2v4h4"/>
+            <polyline points="12 15 8 11 9.5 9.5 12 12 14.5 9.5 16 11 12 15"/>
+        </svg>
+    </button>
+
+    <!-- Global Frogie's Popup Bar -->
+    <div id="frog-bar">
+        <div id="frog-bar-inner">
+            <div id="frog-controls">
+                <div id="frog-drag-handle" class="frog-drag-handle" title="Drag to reposition">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+                </div>
+                <div class="frog-nav-group">
+                    <button id="frog-back" class="frog-btn" title="Back">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <button id="frog-forward" class="frog-btn" title="Forward">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button id="frog-refresh" class="frog-btn" title="Refresh">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                </div>
+                <form id="frog-form" class="frog-url-form">
+                    <div class="frog-url-wrap">
+                        <svg class="frog-url-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <input id="frog-url" type="text" placeholder="Search or enter URL..." autofocus />
+                    </div>
+                    <button type="submit" class="frog-go-btn">Go</button>
+                </form>
+                <div class="frog-actions-group">
+                    <button id="frog-home" class="frog-btn" title="Home">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </button>
+                    <button id="frog-popout" class="frog-btn" title="Open in about:blank">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </button>
+                    <button id="frog-music-btn" class="frog-btn" title="Toggle music player">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="frog-tabs">
+                <div id="frog-tab-list"></div>
+                <button id="frog-newtab" class="frog-newtab-btn" title="New Tab">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Music Player -->
+    <div id="music-player" class="music-minimized">
+        <div id="music-header">
+            <div id="music-now-playing" class="music-compact">
+                <img id="music-thumb" src="" alt="" />
+                <div class="music-info">
+                    <span id="music-title">No track</span>
+                    <span id="music-author"></span>
+                </div>
+            </div>
+            <div class="music-header-btns">
+                <button id="music-search-toggle" class="music-icon-btn" title="Search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+                <button id="music-toggle-btn" class="music-icon-btn" title="Minimize">
+                    <svg id="music-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+            </div>
+        </div>
+        <div id="music-body">
+            <div id="music-search-area" class="music-hidden">
+                <div class="music-search-wrap">
+                    <input id="music-search-input" type="text" placeholder="Search songs..." />
+                </div>
+                <div id="music-results"></div>
+            </div>
+            <div id="music-player-area">
+                <div id="music-now-full">
+                    <img id="music-full-thumb" src="" alt="" />
+                    <div class="music-full-info">
+                        <span id="music-full-title">No track selected</span>
+                        <span id="music-full-author"></span>
+                    </div>
+                </div>
+                <div id="music-progress">
+                    <span id="music-current-time">0:00</span>
+                    <div id="music-progress-bar">
+                        <div id="music-progress-fill"></div>
+                    </div>
+                    <span id="music-duration">0:00</span>
+                </div>
+                <div id="music-controls">
+                    <button id="music-shuffle-btn" class="music-ctrl-btn" title="Shuffle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                    </button>
+                    <button id="music-prev-btn" class="music-ctrl-btn" title="Previous">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="19 20 9 12 19 4 19 20"/><line y1="4" x2="4" y2="4" stroke="currentColor" stroke-width="2.5"/><line y1="20" x2="4" y2="20" stroke="currentColor" stroke-width="2.5"/></svg>
+                    </button>
+                    <button id="music-play-btn" class="music-ctrl-btn music-play-btn" title="Play">
+                        <svg id="music-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                    <button id="music-next-btn" class="music-ctrl-btn" title="Next">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="4" x2="19" y2="20" stroke="currentColor" stroke-width="2.5"/></svg>
+                    </button>
+                    <button id="music-repeat-btn" class="music-ctrl-btn" title="Repeat">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    </button>
+                </div>
+                <div id="music-volume-wrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <input id="music-volume" type="range" min="0" max="100" value="80" />
+                </div>
+                <div id="music-queue">
+                    <div class="music-queue-header">
+                        <span>Queue</span>
+                        <span id="music-queue-count">0 songs</span>
+                    </div>
+                    <div id="music-queue-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden YouTube IFrame Player -->
+    <div id="music-youtube-player" style="position:absolute;width:0;height:0;overflow:hidden"></div>
+
+    <div id="toast"></div>
+</body>
+</html>
