@@ -1239,22 +1239,43 @@ function renderMusicResults(results) {
     musicResults.innerHTML = results.map(r => `
         <div class="music-result-item" data-id="${r.id}" data-title="${escapeHtml(r.title)}" data-author="${escapeHtml(r.author)}" data-thumb="${r.thumbnail}">
             <img src="${r.thumbnail}" alt="" loading="lazy" onerror="this.src=window.FALLBACK_THUMB" />
-            <div class="r-title">${escapeHtml(r.title)}</div>
-            <div class="r-meta">${r.author} · ${r.duration}</div>
+            <div class="r-info">
+                <div class="r-title">${escapeHtml(r.title)}</div>
+                <div class="r-meta">${r.author} · ${r.duration}</div>
+            </div>
+            <button class="r-play-btn" title="Play now">▶</button>
+            <button class="r-add-btn" title="Add to queue">+</button>
         </div>
     `).join("");
     musicResults.querySelectorAll(".music-result-item").forEach(el => {
-        el.addEventListener("click", () => {
-            const id = el.dataset.id;
-            const title = el.dataset.title;
-            const author = el.dataset.author;
-            const thumb = el.dataset.thumb;
+        const id = el.dataset.id;
+        const title = el.dataset.title;
+        const author = el.dataset.author;
+        const thumb = el.dataset.thumb;
+        el.querySelector(".r-play-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
             playSong(id, title, author, thumb);
             musicSearchInput.value = "";
             musicResults.innerHTML = "";
             musicSearchArea.classList.add("music-hidden");
         });
+        el.querySelector(".r-add-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
+            queueSong(id, title, author, thumb);
+            toast("Added to queue");
+        });
     });
+}
+
+function queueSong(videoId, title, author, thumbnail) {
+    if (musicQueue.findIndex(t => t.id === videoId) >= 0) return;
+    musicQueue.push({ id: videoId, title, author, thumbnail });
+    if (musicIndex < 0) {
+        musicIndex = 0;
+        playCurrent();
+        showPlayer();
+    }
+    updateQueueUI();
 }
 
 /* Queue UI */
@@ -1281,7 +1302,7 @@ function updateQueueUI() {
             musicQueue.splice(idx, 1);
             if (idx < musicIndex) musicIndex--;
             else if (idx === musicIndex) {
-                if (musicQueue.length === 0) { musicIndex = -1; stopPlayback(); }
+                if (musicQueue.length === 0) { musicIndex = -1; musicEmbed.src = "about:blank"; }
                 else { if (musicIndex >= musicQueue.length) musicIndex = musicQueue.length - 1; playCurrent(); }
             }
             updateQueueUI();
