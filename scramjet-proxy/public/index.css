@@ -142,11 +142,11 @@ html, body {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 7px 16px;
-    width: auto;
-    min-width: 380px;
-    max-width: 90vw;
+    justify-content: center;
+    gap: 10px;
+    padding: 5px 14px;
+    width: fit-content;
+    max-width: 94vw;
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     background-color: rgba(29, 29, 29, 0.7);
@@ -156,26 +156,30 @@ html, body {
 }
 
 .nav-logo {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
     color: #fff;
+    flex-shrink: 0;
 }
 
 .nav-center {
     display: flex;
     align-items: center;
     gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .nav-tab {
-    padding: 6px 14px;
+    padding: 5px 12px;
     border: none;
-    border-radius: 14px;
+    border-radius: 12px;
     background: transparent;
     color: #8892a0;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.15s;
 }
 
@@ -191,9 +195,10 @@ html, body {
 }
 
 .online-badge {
-    font-size: 11px;
+    font-size: 10px;
     color: #8892a0;
     font-weight: 600;
+    flex-shrink: 0;
 }
 
 #content {
@@ -1992,16 +1997,17 @@ html, body {
 /* Player area */
 #music-player-area {
     padding: 8px 10px 6px;
+    position: relative;
 }
 #music-yt-player {
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 6px;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: 200px;
-    background: #000;
+    height: 60px;
+    opacity: 0;
+    pointer-events: none;
 }
-.music-minimized #music-yt-player,
 .music-minimized #music-controls,
 .music-minimized #music-queue {
     display: none;
@@ -2199,7 +2205,7 @@ html, body {
 }
 
 @media (max-width: 700px) {
-    #navbar { min-width: unset; width: 94%; padding: 5px 8px; }
+    #navbar { padding: 4px 8px; gap: 6px; }
     .nav-tab { padding: 4px 8px; font-size: 11px; }
     .nav-logo { font-size: 13px; }
     .online-badge { font-size: 10px; }
@@ -2213,7 +2219,7 @@ html, body {
         font-size: 12px;
     }
     #music-player.music-minimized { width: 150px; }
-    #navbar { min-width: unset; width: 98%; padding: 4px 5px; }
+    #navbar { padding: 3px 6px; gap: 4px; }
     .nav-tab { padding: 3px 6px; font-size: 10px; }
     .nav-logo { display: none; }
     .online-badge { display: none; }
