@@ -768,6 +768,20 @@ if (!roomNames || typeof roomNames !== "object" || Array.isArray(roomNames)) roo
 chatName.value = storageGet("kHubName") || "";
 roomCode.value = currentRoom;
 
+function getChatNickname(orig) {
+    const map = parseJson(storageGet("kHubNicknames"), {});
+    if (map[orig]) return stripPhone(map[orig]);
+    return stripPhone(orig);
+}
+function setChatNickname(orig, custom) {
+    const map = parseJson(storageGet("kHubNicknames"), {});
+    map[orig] = custom;
+    storageSet("kHubNicknames", JSON.stringify(map));
+}
+function stripPhone(s) {
+    return s.replace(/\+\d[\d\s\-().]{6,}\d/g, "Guest");
+}
+
 document.querySelector("#createRoomBtn").addEventListener("click", createChatRoom);
 document.querySelector("#joinRoomBtn").addEventListener("click", joinChatRoom);
 document.querySelector("#leaveRoomBtn").addEventListener("click", leaveChatRoom);
@@ -890,9 +904,23 @@ function renderChatMessages() {
     msgs.forEach((msg) => {
         const bubble = document.createElement("div");
         bubble.className = "msg" + (msg.name === chatName.value.trim() ? " mine" : "");
-        const displayName = escapeHtml(msg.name || "Guest").replace(/\+\d[\d\s\-().]{6,}\d/g, "[redacted]");
-        bubble.innerHTML = "<b>" + displayName + "</b>" + escapeHtml(msg.text);
+        const rawName = msg.name || "Guest";
+        const displayName = escapeHtml(getChatNickname(rawName));
+        bubble.innerHTML = "<b data-nick='" + escapeHtml(rawName) + "'>" + displayName + "</b>" + escapeHtml(msg.text);
         messages.appendChild(bubble);
+    });
+    messages.querySelectorAll("[data-nick]").forEach(el => {
+        el.style.cursor = "pointer";
+        el.title = "Click to rename";
+        el.addEventListener("click", () => {
+            const orig = el.dataset.nick;
+            const current = getChatNickname(orig);
+            const input = prompt("Rename '" + current + "' to:", current);
+            if (input && input.trim() && input.trim() !== current) {
+                setChatNickname(orig, input.trim());
+                renderChatMessages();
+            }
+        });
     });
     messages.scrollTop = messages.scrollHeight;
 }
@@ -902,7 +930,8 @@ messageForm.addEventListener("submit", async (event) => {
     if (!currentRoom) joinChatRoom();
     const text = messageInput.value.trim();
     if (!currentRoom || !text) return;
-    const msg = addViewedAt({ name: chatName.value.trim() || "Guest", text, at: Date.now() });
+    const cleanName = stripPhone(chatName.value.trim() || "Guest");
+    const msg = addViewedAt({ name: cleanName, text, at: Date.now() });
     messageInput.value = "";
     chatRooms[currentRoom] ||= [];
     chatRooms[currentRoom].push(msg);
@@ -920,6 +949,7 @@ messageForm.addEventListener("submit", async (event) => {
 });
 
 chatName.addEventListener("input", () => {
+    chatName.value = stripPhone(chatName.value);
     saveChatRooms();
     renderChatMessages();
     const sn = document.getElementById("settingsNickname");
@@ -1005,6 +1035,7 @@ const settingsNickname = document.getElementById("settingsNickname");
 if (settingsNickname) {
     settingsNickname.value = chatName.value;
     settingsNickname.addEventListener("input", () => {
+        settingsNickname.value = stripPhone(settingsNickname.value);
         chatName.value = settingsNickname.value;
         saveChatRooms();
         renderChatMessages();
