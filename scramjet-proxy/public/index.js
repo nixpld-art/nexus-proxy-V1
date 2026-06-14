@@ -1135,6 +1135,8 @@ let musicRepeat = false;
 let musicMinimized = true;
 let musicHidden = false;
 let musicProgressInterval = null;
+const FALLBACK_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
+window.FALLBACK_THUMB = FALLBACK_THUMB;
 
 const musicEl = document.getElementById("music-player");
 const musicThumb = document.getElementById("music-thumb");
@@ -1211,6 +1213,9 @@ function onPlayerError(e) {
 function onPlayerReady() {
     ytReady = true;
     ytPlayer.setVolume(parseInt(musicVolume.value));
+    if (musicIndex >= 0 && musicIndex < musicQueue.length) {
+        playCurrent();
+    }
 }
 
 function onPlayerStateChange(e) {
@@ -1271,14 +1276,13 @@ function playCurrent() {
 }
 
 function updateNowPlaying(track) {
-    const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
     const thumb = track.thumbnail || `https://i.ytimg.com/vi/${track.id}/mqdefault.jpg`;
     musicThumb.src = thumb;
-    musicThumb.onerror = () => { musicThumb.src = fallbackSvg; };
+    musicThumb.onerror = () => { musicThumb.src = window.FALLBACK_THUMB; };
     musicTitle.textContent = track.title;
     musicAuthor.textContent = track.author;
     musicFullThumb.src = thumb;
-    musicFullThumb.onerror = () => { musicFullThumb.src = fallbackSvg; };
+    musicFullThumb.onerror = () => { musicFullThumb.src = window.FALLBACK_THUMB; };
     musicFullTitle.textContent = track.title;
     musicFullAuthor.textContent = track.author;
 }
@@ -1391,10 +1395,9 @@ function renderMusicResults(results) {
         musicResults.innerHTML = "<div style='padding:8px;color:var(--muted);font-size:12px'>No results found</div>";
         return;
     }
-    const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
     musicResults.innerHTML = results.map(r => `
         <div class="music-result-item" data-id="${r.id}" data-title="${escapeHtml(r.title)}" data-author="${escapeHtml(r.author)}" data-thumb="${r.thumbnail}">
-            <img src="${r.thumbnail}" alt="" loading="lazy" onerror="this.src='${fallbackSvg}'" />
+            <img src="${r.thumbnail}" alt="" loading="lazy" onerror="this.src=FALLBACK_THUMB" />
             <div class="r-title">${escapeHtml(r.title)}</div>
             <div class="r-meta">${r.author} · ${r.duration}</div>
         </div>
@@ -1421,10 +1424,9 @@ function escapeHtml(s) {
 
 /* Queue UI */
 function updateQueueUI() {
-    const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
     musicQueueList.innerHTML = musicQueue.map((t, i) => `
         <div class="music-qitem ${i === musicIndex ? "active" : ""}" data-idx="${i}">
-            <img src="${t.thumbnail || "https://i.ytimg.com/vi/" + t.id + "/mqdefault.jpg"}" alt="" onerror="this.src='${fallbackSvg}'" />
+            <img src="${t.thumbnail || "https://i.ytimg.com/vi/" + t.id + "/mqdefault.jpg"}" alt="" onerror="this.src=window.FALLBACK_THUMB" />
             <span class="q-title">${escapeHtml(t.title)}</span>
             <button class="q-remove" data-idx="${i}">×</button>
         </div>
