@@ -144,8 +144,9 @@ html, body {
     align-items: center;
     justify-content: space-between;
     padding: 7px 16px;
-    width: 30%;
-    max-width: 1600px;
+    width: auto;
+    min-width: 380px;
+    max-width: 90vw;
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     background-color: rgba(29, 29, 29, 0.7);
@@ -2008,36 +2009,42 @@ html, body {
 #music-controls {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 6px;
+    gap: 4px;
+    margin-bottom: 4px;
+    padding: 6px 4px;
 }
 #music-controls-row,
 #music-controls-row2 {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     justify-content: center;
 }
 #music-controls button {
     background: rgba(255,255,255,0.06);
     border: none;
     color: var(--text);
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
-    padding: 4px 10px;
+    width: 32px;
+    height: 28px;
     border-radius: 6px;
     transition: background 0.12s;
-    line-height: 1.2;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 #music-controls button:hover {
     background: rgba(255,255,255,0.12);
 }
 #music-controls button.active {
     color: var(--accent);
+    background: rgba(0,212,170,0.1);
 }
 #music-play-pause {
-    font-size: 20px;
-    padding: 4px 14px;
+    font-size: 18px;
+    width: 40px;
 }
 #music-progress {
     display: flex;
@@ -2045,6 +2052,7 @@ html, body {
     gap: 6px;
     font-size: 11px;
     color: var(--muted);
+    padding: 2px 0;
 }
 #music-seek {
     flex: 1;
@@ -2073,7 +2081,7 @@ html, body {
     border: none;
 }
 #music-volume-slider {
-    width: 60px;
+    width: 50px;
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
@@ -2099,7 +2107,8 @@ html, body {
     border: none;
 }
 #music-volume-btn {
-    font-size: 14px;
+    font-size: 13px;
+    width: 28px;
 }
 
 /* Queue */
@@ -2190,9 +2199,9 @@ html, body {
 }
 
 @media (max-width: 700px) {
-    #navbar { width: 94%; padding: 6px 10px; }
-    .nav-tab { padding: 5px 10px; font-size: 12px; }
-    .nav-logo { font-size: 14px; }
+    #navbar { min-width: unset; width: 94%; padding: 5px 8px; }
+    .nav-tab { padding: 4px 8px; font-size: 11px; }
+    .nav-logo { font-size: 13px; }
     .online-badge { font-size: 10px; }
 }
 
@@ -2204,8 +2213,8 @@ html, body {
         font-size: 12px;
     }
     #music-player.music-minimized { width: 150px; }
-    #navbar { width: 98%; padding: 5px 6px; }
-    .nav-tab { padding: 4px 7px; font-size: 11px; }
+    #navbar { min-width: unset; width: 98%; padding: 4px 5px; }
+    .nav-tab { padding: 3px 6px; font-size: 10px; }
     .nav-logo { display: none; }
     .online-badge { display: none; }
 }

@@ -1382,12 +1382,12 @@ function onYTReady() {
 
 function onPlayerStateChange(e) {
     if (e.data === YT.PlayerState.PLAYING) {
-        playPauseBtn.textContent = "⏸";
+        playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
         if (!seeking) updateProgress();
     } else if (e.data === YT.PlayerState.PAUSED) {
-        playPauseBtn.textContent = "▶";
+        playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     } else if (e.data === YT.PlayerState.ENDED) {
-        playPauseBtn.textContent = "▶";
+        playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
         playNext();
     } else if (e.data === YT.PlayerState.CUED) {
         if (musicMinimized) toggleMinimize();
@@ -1630,7 +1630,11 @@ volumeSlider.addEventListener("input", () => {
     if (!ytPlayer) return;
     const v = parseInt(volumeSlider.value) / 100;
     ytPlayer.setVolume(v * 100);
-    volumeBtn.textContent = v === 0 ? "🔇" : v < 0.5 ? "🔉" : "🔊";
+    volumeBtn.innerHTML = v === 0
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
+        : v < 0.5
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
 });
 
 musicToggleBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleMinimize(); });
@@ -1666,6 +1670,7 @@ document.addEventListener("keydown", (e) => {
 
 /* Init */
 frogMusicBtn.classList.add("active");
+volumeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
 
 /* ── Patch Notes ── */
 const PATCH_NOTES_VERSION = 1;
