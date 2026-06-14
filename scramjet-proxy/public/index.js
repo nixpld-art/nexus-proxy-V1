@@ -1507,3 +1507,17 @@ document.addEventListener("keydown", (e) => {
 /* Init */
 frogMusicBtn.classList.add("active");
 loadYouTubeAPI();
+
+/* ── Patch Notes ── */
+const PATCH_NOTES_VERSION = 1;
+const patchModal = document.getElementById("patchModal");
+if (!localStorage.getItem("nexus-patch-seen") && patchModal) {
+    patchModal.classList.remove("hidden");
+}
+function dismissPatch() {
+    patchModal.classList.add("hidden");
+    try { localStorage.setItem("nexus-patch-seen", String(PATCH_NOTES_VERSION)); } catch (e) {}
+}
+document.getElementById("patchClose")?.addEventListener("click", dismissPatch);
+document.getElementById("patchGotIt")?.addEventListener("click", dismissPatch);
+patchModal?.addEventListener("click", (e) => { if (e.target === patchModal) dismissPatch(); });

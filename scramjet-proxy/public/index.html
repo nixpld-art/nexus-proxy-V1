@@ -24,6 +24,51 @@
         <p>loading your experience...</p>
     </div>
 
+    <!-- Patch Notes Modal -->
+    <div id="patchModal" class="modal-overlay hidden">
+        <div class="modal modal-patch">
+            <div class="modal-patch-header">
+                <h3>What's New</h3>
+                <button id="patchClose" class="modal-btn ghost">&times;</button>
+            </div>
+            <div class="modal-patch-body">
+                <div class="patch-entry">
+                    <span class="patch-tag patch-new">New</span>
+                    <strong>Music Player</strong>
+                    <p>Search any song on YouTube, play audio, build a queue, shuffle & repeat.</p>
+                </div>
+                <div class="patch-entry">
+                    <span class="patch-tag patch-fix">Fix</span>
+                    <strong>Frog Toggle Clicks</strong>
+                    <p>Moved outside the stacking context so clicks register on the first try.</p>
+                </div>
+                <div class="patch-entry">
+                    <span class="patch-tag patch-new">New</span>
+                    <strong>Nexus AI</strong>
+                    <p>Chat with AI powered by OpenAI or local Ollama — no API key needed on the client.</p>
+                </div>
+                <div class="patch-entry">
+                    <span class="patch-tag patch-new">New</span>
+                    <strong>Chat Rooms</strong>
+                    <p>Create and join chat rooms with Firebase realtime database. Messages auto-delete after 90 seconds.</p>
+                </div>
+                <div class="patch-entry">
+                    <span class="patch-tag patch-change">Change</span>
+                    <strong>Scramjet Only</strong>
+                    <p>Removed UV and Epoxy proxies — only Scramjet remains for better performance.</p>
+                </div>
+                <div class="patch-entry">
+                    <span class="patch-tag patch-change">Change</span>
+                    <strong>DuckDuckGo Default</strong>
+                    <p>Default search engine changed to DuckDuckGo to avoid Google reCAPTCHA issues.</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="patchGotIt" class="modal-btn primary">Got it</button>
+            </div>
+        </div>
+    </div>
+
     <div id="app">
         <nav id="navbar">
             <div class="nav-left">
