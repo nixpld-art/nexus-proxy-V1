@@ -1005,6 +1005,12 @@ html, body {
     font-size: 13px;
     margin: 4px 0 3px;
 }
+.patch-date {
+    display: block;
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    margin: 2px 0 4px;
+}
 .patch-entry p {
     margin: 0;
     font-size: 11.5px;

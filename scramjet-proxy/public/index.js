@@ -1239,13 +1239,20 @@ function updatePlayIcon(playing) {
 }
 
 function playSong(videoId, title, author, thumbnail) {
-    if (!ytReady) return toast("Music player not ready");
     const existingIdx = musicQueue.findIndex(t => t.id === videoId);
     if (existingIdx >= 0) {
         musicIndex = existingIdx;
     } else {
         musicQueue.push({ id: videoId, title, author, thumbnail });
         musicIndex = musicQueue.length - 1;
+    }
+    if (!ytReady) {
+        toast("Loading YouTube player...");
+        updateNowPlaying(musicQueue[musicIndex]);
+        updateQueueUI();
+        showPlayer();
+        loadYouTubeAPI();
+        return;
     }
     playCurrent();
     updateQueueUI();
@@ -1264,11 +1271,14 @@ function playCurrent() {
 }
 
 function updateNowPlaying(track) {
+    const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
     const thumb = track.thumbnail || `https://i.ytimg.com/vi/${track.id}/mqdefault.jpg`;
     musicThumb.src = thumb;
+    musicThumb.onerror = () => { musicThumb.src = fallbackSvg; };
     musicTitle.textContent = track.title;
     musicAuthor.textContent = track.author;
     musicFullThumb.src = thumb;
+    musicFullThumb.onerror = () => { musicFullThumb.src = fallbackSvg; };
     musicFullTitle.textContent = track.title;
     musicFullAuthor.textContent = track.author;
 }
@@ -1381,9 +1391,10 @@ function renderMusicResults(results) {
         musicResults.innerHTML = "<div style='padding:8px;color:var(--muted);font-size:12px'>No results found</div>";
         return;
     }
+    const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
     musicResults.innerHTML = results.map(r => `
         <div class="music-result-item" data-id="${r.id}" data-title="${escapeHtml(r.title)}" data-author="${escapeHtml(r.author)}" data-thumb="${r.thumbnail}">
-            <img src="${r.thumbnail}" alt="" loading="lazy" />
+            <img src="${r.thumbnail}" alt="" loading="lazy" onerror="this.src='${fallbackSvg}'" />
             <div class="r-title">${escapeHtml(r.title)}</div>
             <div class="r-meta">${r.author} · ${r.duration}</div>
         </div>
@@ -1410,9 +1421,10 @@ function escapeHtml(s) {
 
 /* Queue UI */
 function updateQueueUI() {
+    const fallbackSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
     musicQueueList.innerHTML = musicQueue.map((t, i) => `
         <div class="music-qitem ${i === musicIndex ? "active" : ""}" data-idx="${i}">
-            <img src="${t.thumbnail || "https://i.ytimg.com/vi/" + t.id + "/mqdefault.jpg"}" alt="" />
+            <img src="${t.thumbnail || "https://i.ytimg.com/vi/" + t.id + "/mqdefault.jpg"}" alt="" onerror="this.src='${fallbackSvg}'" />
             <span class="q-title">${escapeHtml(t.title)}</span>
             <button class="q-remove" data-idx="${i}">×</button>
         </div>
