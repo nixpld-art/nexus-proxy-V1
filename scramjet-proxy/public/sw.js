@@ -22,18 +22,20 @@ function stripHeaders(response) {
 
 async function handleRequest(event) {
 	const url = new URL(event.request.url);
-	// YouTube media/subresources go direct (not through proxy)
+	// YouTube media/subresources go direct
 	if (url.hostname.endsWith("ytimg.com") || url.hostname.endsWith("googlevideo.com") || url.hostname.endsWith("ggpht.com")) {
 		return fetch(event.request);
 	}
 	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
-		let response = await scramjet.fetch(event);
-		// Inject consent bypass into YouTube HTML pages served through the proxy
-		if (event.request.url.includes("youtube.com") && response.headers.get("content-type")?.includes("text/html")) {
+		const response = await scramjet.fetch(event);
+		// For YouTube pages, inject consent-bypass script and US params
+		const targetUrl = event.request.url;
+		if (targetUrl.includes("youtube.com") && response.headers.get("content-type")?.includes("text/html")) {
 			const text = await response.text();
-			const patched = text.replace("</head>", '<script>function ac(){let b=document.querySelector(\'[aria-label="Accept all"], [aria-label="Accept all"]\');if(b){b.click();clearInterval(i)}}let i=setInterval(ac,100);setTimeout(()=>clearInterval(i),5000);<\/script></head>');
-			response = new Response(patched, { status: response.status, statusText: response.statusText, headers: response.headers });
+			const patched = text
+				.replace('</head>', '<script>let i=setInterval(function(){var b=document.querySelector(\'[aria-label="Accept all"], [aria-label="Accept all"]\');if(b){b.click();clearInterval(i)}},200);setTimeout(function(){clearInterval(i)},8000);<\/script></head>');
+			return stripHeaders(new Response(patched, { status: response.status, statusText: response.statusText, headers: response.headers }));
 		}
 		return stripHeaders(response);
 	}

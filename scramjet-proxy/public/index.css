@@ -572,7 +572,43 @@ html, body {
 
 /* Frog trigger strip — subtle hover zone at top */
 /* Frogie's page-fold toggle button */
-/* frog-toggle removed */
+#frog-toggle {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999999;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    background: rgba(10, 10, 18, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+#frog-toggle:hover {
+    background: rgba(10, 10, 18, 0.9);
+    color: var(--accent);
+    border-color: var(--accent-dim);
+    transform: translateX(-50%) scale(1.08);
+}
+#frog-toggle:active {
+    transform: translateX(-50%) scale(0.92);
+}
+#frog-toggle svg {
+    display: block;
+    transition: transform 0.3s ease;
+}
+#frog-toggle.active svg {
+    transform: rotate(180deg);
+}
 
 /* Bar visibility is JS-only via .visible class */
 
