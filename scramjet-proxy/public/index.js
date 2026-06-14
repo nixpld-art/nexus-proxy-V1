@@ -1271,6 +1271,9 @@ function playSong(videoId, title, author, thumbnail) {
         updateNowPlaying(musicQueue[musicIndex]);
         updateQueueUI();
         showPlayer();
+        ytRetries = 0;
+        ytLoading = false;
+        document.getElementById("music-player")?.classList.remove("music-api-failed");
         loadYouTubeAPI();
         return;
     }
