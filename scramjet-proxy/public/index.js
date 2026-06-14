@@ -1160,6 +1160,7 @@ function playSong(videoId, title, author, thumbnail) {
     }
     playCurrent();
     updateQueueUI();
+    if (musicMinimized) toggleMinimize();
     showPlayer();
 }
 
@@ -1270,12 +1271,9 @@ function renderMusicResults(results) {
 function queueSong(videoId, title, author, thumbnail) {
     if (musicQueue.findIndex(t => t.id === videoId) >= 0) return;
     musicQueue.push({ id: videoId, title, author, thumbnail });
-    if (musicIndex < 0) {
-        musicIndex = 0;
-        playCurrent();
-        showPlayer();
-    }
+    if (musicIndex < 0) musicIndex = 0;
     updateQueueUI();
+    showPlayer();
 }
 
 /* Queue UI */
@@ -1293,6 +1291,7 @@ function updateQueueUI() {
             if (e.target.classList.contains("q-remove")) return;
             musicIndex = parseInt(el.dataset.idx);
             playCurrent();
+            if (musicMinimized) toggleMinimize();
         });
     });
     musicQueueList.querySelectorAll(".q-remove").forEach(btn => {
