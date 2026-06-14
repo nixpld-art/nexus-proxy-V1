@@ -228,6 +228,7 @@ async function navigateTab(id, url) {
     activeProxy.navigate(tab.frame, url);
     tab.titleEl.textContent = hostnameFromUrl(url);
     document.getElementById("frog-url").value = url;
+    autoCloakRedirect();
 }
 
 function navigateDirect(id, url) {
@@ -241,6 +242,7 @@ function navigateDirect(id, url) {
     tab.frame.frame.src = url;
     tab.titleEl.textContent = hostnameFromUrl(url);
     document.getElementById("frog-url").value = url;
+    autoCloakRedirect();
 }
 
 /* URL polling for Frogie's bar */
@@ -275,7 +277,6 @@ let frogVisible = false;
 
 function showFrogBar() {
     if (frogVisible) return;
-    if (currentView !== "proxy") return;
     frogVisible = true;
     frogBar.classList.add("visible");
     frogToggle.classList.add("active");
@@ -292,9 +293,12 @@ function hideFrogBar(force) {
 }
 
 frogToggle.addEventListener("click", () => {
-    if (currentView !== "proxy") return;
-    if (frogVisible) { hideFrogBar(true); }
-    else { showFrogBar(); }
+    if (currentView === "proxy") {
+        if (frogVisible) { hideFrogBar(true); }
+        else { showFrogBar(); }
+    } else {
+        toggleMusicVisibility();
+    }
 });
 
 document.getElementById("frog-url").addEventListener("focus", showFrogBar);
@@ -457,7 +461,7 @@ function switchNav(view) {
     document.getElementById("navbar").style.display = view === "proxy" ? "none" : "flex";
     frogBar.classList.remove("visible");
     frogToggle.classList.remove("active");
-    frogToggle.style.display = view === "proxy" ? "flex" : "none";
+    frogToggle.style.display = "flex";
     if (view !== "proxy") { stopUrlPolling(); }
     if (view === "proxy" && tabs.length > 0) { showFrogBar(); }
 }
@@ -520,16 +524,16 @@ async function autoCloakRedirect() {
     const cloak = cloakMap[activeCloak];
     if (!cloak) return;
     await ensureProxy();
-    const win = window.open("about:blank", "_blank");
-    if (!win) return;
-    // If there's an active proxied tab, proxy its URL; otherwise load main page directly (no proxy loop)
     const frameUrl = tab?.url
         ? location.origin + activeProxy.encodeUrl(tab.url)
         : location.href;
-    win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + cloak.title + '</title><link id="cloakFavicon" rel="shortcut icon" href="' + cloak.icon + '"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe id="cloakFrame" src="' + frameUrl + '" allow="autoplay; fullscreen; clipboard-read; clipboard-write"></iframe><script>const icon="' + cloak.icon + '";const link=document.getElementById("cloakFavicon");function force(){link.href=icon;}document.getElementById("cloakFrame").onload=force;setInterval(force,500);<\/script></body></html>');
-    win.document.close();
-    blankWindows.push(win);
-    window.location.replace("https://www.google.com");
+    const win = window.open("about:blank", "_blank");
+    if (win) {
+        win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + cloak.title + '</title><link id="cloakFavicon" rel="shortcut icon" href="' + cloak.icon + '"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe id="cloakFrame" src="' + frameUrl + '" allow="autoplay; fullscreen; clipboard-read; clipboard-write"></iframe><script>const icon="' + cloak.icon + '";const link=document.getElementById("cloakFavicon");function force(){link.href=icon;}document.getElementById("cloakFrame").onload=force;setInterval(force,500);<\/script></body></html>');
+        win.document.close();
+        blankWindows.push(win);
+        window.location.replace("https://www.google.com");
+    }
 }
 
 document.querySelectorAll(".cloak-btn").forEach((btn) => {
@@ -886,7 +890,8 @@ function renderChatMessages() {
     msgs.forEach((msg) => {
         const bubble = document.createElement("div");
         bubble.className = "msg" + (msg.name === chatName.value.trim() ? " mine" : "");
-        bubble.innerHTML = "<b>" + escapeHtml(msg.name || "Guest") + "</b>" + escapeHtml(msg.text);
+        const displayName = escapeHtml(msg.name || "Guest").replace(/\+\d[\d\s\-().]{6,}\d/g, "[redacted]");
+        bubble.innerHTML = "<b>" + displayName + "</b>" + escapeHtml(msg.text);
         messages.appendChild(bubble);
     });
     messages.scrollTop = messages.scrollHeight;
@@ -1044,6 +1049,159 @@ renderChatRooms();
 renderChatMessages();
 connectFirebaseChat();
 
+/* ── Account (Firebase Auth) ── */
+let currentUser = null;
+
+function firebaseAuthReady() {
+    return typeof firebase !== "undefined" && firebase.auth && firebase.apps.length > 0;
+}
+
+const accountEmail = document.getElementById("account-email");
+const accountPassword = document.getElementById("account-password");
+const accountSignIn = document.getElementById("account-signin-btn");
+const accountSignUp = document.getElementById("account-signup-btn");
+const accountSignOut = document.getElementById("account-signout-btn");
+const accountError = document.getElementById("account-error");
+const accountSignedOut = document.getElementById("account-signed-out");
+const accountSignedIn = document.getElementById("account-signed-in");
+const accountEmailDisplay = document.getElementById("account-email-display");
+const accountStatusDesc = document.getElementById("account-status-desc");
+const accountSyncBtn = document.getElementById("account-sync-btn");
+const accountSyncStatus = document.getElementById("account-sync-status");
+
+function showAccountError(msg) {
+    accountError.textContent = msg;
+    accountError.style.display = "block";
+}
+function hideAccountError() { accountError.style.display = "none"; }
+
+function updateAccountUI(user) {
+    currentUser = user;
+    if (user) {
+        accountSignedOut.style.display = "none";
+        accountSignedIn.style.display = "block";
+        accountEmailDisplay.textContent = user.email;
+        accountStatusDesc.textContent = "Your data is saved to the cloud";
+        accountSyncBtn.disabled = false;
+    } else {
+        accountSignedOut.style.display = "block";
+        accountSignedIn.style.display = "none";
+        accountStatusDesc.textContent = "Sign in to sync your data across devices";
+        accountSyncBtn.disabled = true;
+    }
+}
+
+let autoSyncDone = false;
+
+if (firebaseAuthReady()) {
+    firebase.auth().onAuthStateChanged((user) => {
+        updateAccountUI(user);
+        if (user && !autoSyncDone) {
+            autoSyncDone = true;
+            syncFromCloud();
+        }
+    });
+}
+
+accountSignIn.addEventListener("click", async () => {
+    if (!firebaseAuthReady()) { showAccountError("Firebase Auth not loaded"); return; }
+    hideAccountError();
+    const email = accountEmail.value.trim();
+    const pass = accountPassword.value.trim();
+    if (!email || !pass) { showAccountError("Enter email and password"); return; }
+    try {
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+        toast("Signed in");
+    } catch (e) { showAccountError(e.message); }
+});
+
+accountSignUp.addEventListener("click", async () => {
+    if (!firebaseAuthReady()) { showAccountError("Firebase Auth not loaded"); return; }
+    hideAccountError();
+    const email = accountEmail.value.trim();
+    const pass = accountPassword.value.trim();
+    if (!email || !pass) { showAccountError("Enter email and password"); return; }
+    if (pass.length < 6) { showAccountError("Password must be at least 6 characters"); return; }
+    try {
+        await firebase.auth().createUserWithEmailAndPassword(email, pass);
+        toast("Account created");
+    } catch (e) { showAccountError(e.message); }
+});
+
+accountSignOut.addEventListener("click", async () => {
+    if (!firebaseAuthReady()) return;
+    try {
+        await firebase.auth().signOut();
+        toast("Signed out");
+    } catch (e) { showAccountError(e.message); }
+});
+
+/* Cloud sync */
+async function syncToCloud() {
+    if (!currentUser) return;
+    accountSyncStatus.textContent = "Syncing...";
+    const data = {
+        settings: {
+            theme: (() => { try { return localStorage.getItem("nexus-theme"); } catch(e) {} })(),
+            cloak: (() => { try { return localStorage.getItem("nexus-cloak"); } catch(e) {} })(),
+            autocloak: (() => { try { return localStorage.getItem("nexus-autocloak"); } catch(e) {} })(),
+            nickname: (() => { try { return localStorage.getItem("kHubName"); } catch(e) {} })(),
+        },
+        shortcuts: (() => { try { return JSON.parse(localStorage.getItem("nexus-shortcuts")) || []; } catch(e) { return []; } })(),
+        musicQueue: musicQueue,
+        musicIndex: musicIndex,
+        aiHistory: aiHistory,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP,
+    };
+    try {
+        await firebase.database().ref("users/" + currentUser.uid).update(data);
+        accountSyncStatus.textContent = "Synced " + new Date().toLocaleTimeString();
+        toast("Data saved to cloud");
+    } catch (e) {
+        accountSyncStatus.textContent = "Sync failed: " + e.message;
+    }
+}
+
+async function syncFromCloud() {
+    if (!currentUser) return;
+    accountSyncStatus.textContent = "Loading...";
+    try {
+        const snap = await firebase.database().ref("users/" + currentUser.uid).once("value");
+        const data = snap.val();
+        if (!data) { accountSyncStatus.textContent = "No cloud data found"; return; }
+        if (data.settings) {
+            const s = data.settings;
+            if (s.theme) { document.documentElement.setAttribute("data-theme", s.theme); localStorage.setItem("nexus-theme", s.theme); themeSelect.value = s.theme; }
+            if (s.cloak) { localStorage.setItem("nexus-cloak", s.cloak); activeCloak = s.cloak; }
+            if (s.autocloak) { localStorage.setItem("nexus-autocloak", s.autocloak); autocloakToggle.checked = s.autocloak === "true"; }
+            if (s.nickname) { chatName.value = s.nickname; localStorage.setItem("kHubName", s.nickname); document.getElementById("settingsNickname").value = s.nickname; }
+        }
+        if (data.shortcuts) {
+            localStorage.setItem("nexus-shortcuts", JSON.stringify(data.shortcuts));
+            shortcuts = data.shortcuts;
+            renderShortcuts();
+        }
+        if (data.aiHistory) {
+            aiHistory = data.aiHistory;
+            aiConversation.innerHTML = "";
+            aiHistory.forEach(m => aiAddMsg(m.role, m.content));
+        }
+        if (data.musicQueue) {
+            musicQueue.length = 0;
+            data.musicQueue.forEach(t => musicQueue.push(t));
+            musicIndex = data.musicIndex || 0;
+            updateQueueUI();
+            if (musicQueue.length > 0) playCurrent();
+        }
+        accountSyncStatus.textContent = "Loaded from cloud " + new Date().toLocaleTimeString();
+        toast("Cloud data loaded");
+    } catch (e) {
+        accountSyncStatus.textContent = "Load failed: " + e.message;
+    }
+}
+
+accountSyncBtn.addEventListener("click", syncToCloud);
+
 /* ===== Nexus AI ===== */
 const aiInput = document.getElementById("aiInput");
 const aiForm = document.getElementById("aiForm");
@@ -1130,6 +1288,11 @@ const musicQueue = [];
 let musicIndex = -1;
 let musicMinimized = true;
 let musicHidden = false;
+let ytPlayer = null;
+let ytReady = false;
+let shuffleOn = false;
+let repeatOn = false;
+let seeking = false;
 const FALLBACK_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
 window.FALLBACK_THUMB = FALLBACK_THUMB;
 
@@ -1137,7 +1300,6 @@ const musicEl = document.getElementById("music-player");
 const musicThumb = document.getElementById("music-thumb");
 const musicTitle = document.getElementById("music-title");
 const musicAuthor = document.getElementById("music-author");
-const musicEmbed = document.getElementById("music-embed");
 const musicSearchInput = document.getElementById("music-search-input");
 const musicResults = document.getElementById("music-results");
 const musicSearchToggle = document.getElementById("music-search-toggle");
@@ -1146,9 +1308,78 @@ const musicToggleBtn = document.getElementById("music-toggle-btn");
 const musicToggleIcon = document.getElementById("music-toggle-icon");
 const musicQueueList = document.getElementById("music-queue-list");
 const musicQueueCount = document.getElementById("music-queue-count");
-const musicEmbedPrev = document.getElementById("music-embed-prev");
-const musicEmbedNext = document.getElementById("music-embed-next");
 const frogMusicBtn = document.getElementById("frog-music-btn");
+const playPauseBtn = document.getElementById("music-play-pause");
+const prevBtn = document.getElementById("music-prev");
+const nextBtn = document.getElementById("music-next");
+const seekSlider = document.getElementById("music-seek");
+const timeCurrent = document.getElementById("music-time-current");
+const timeTotal = document.getElementById("music-time-total");
+const shuffleBtn = document.getElementById("music-shuffle");
+const repeatBtn = document.getElementById("music-repeat");
+const volumeBtn = document.getElementById("music-volume-btn");
+const volumeSlider = document.getElementById("music-volume-slider");
+
+function loadYTAPI() {
+    if (window.YT && window.YT.Player) { onYTReady(); return; }
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const first = document.getElementsByTagName("script")[0];
+    first.parentNode.insertBefore(tag, first);
+}
+window.onYouTubeIframeAPIReady = onYTReady;
+
+function onYTReady() {
+    ytReady = true;
+    ytPlayer = new YT.Player("music-yt-player", {
+        height: "200",
+        width: "100%",
+        playerVars: {
+            autoplay: 0,
+            controls: 0,
+            rel: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+        },
+        events: {
+            onReady: () => { if (musicQueue.length > 0) playCurrent(); },
+            onStateChange: onPlayerStateChange,
+            onError: () => { playNext(); },
+        },
+    });
+}
+
+function onPlayerStateChange(e) {
+    if (e.data === YT.PlayerState.PLAYING) {
+        playPauseBtn.textContent = "⏸";
+        if (!seeking) updateProgress();
+    } else if (e.data === YT.PlayerState.PAUSED) {
+        playPauseBtn.textContent = "▶";
+    } else if (e.data === YT.PlayerState.ENDED) {
+        playPauseBtn.textContent = "▶";
+        playNext();
+    } else if (e.data === YT.PlayerState.CUED) {
+        if (musicMinimized) toggleMinimize();
+        showPlayer();
+    }
+}
+
+function updateProgress() {
+    if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+    const cur = ytPlayer.getCurrentTime();
+    const dur = ytPlayer.getDuration() || 1;
+    seekSlider.max = Math.floor(dur);
+    seekSlider.value = Math.floor(cur);
+    timeCurrent.textContent = formatTime(cur);
+    timeTotal.textContent = formatTime(dur);
+    if (!seeking) requestAnimationFrame(updateProgress);
+}
+
+function formatTime(t) {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+}
 
 function playSong(videoId, title, author, thumbnail) {
     const existingIdx = musicQueue.findIndex(t => t.id === videoId);
@@ -1167,9 +1398,13 @@ function playSong(videoId, title, author, thumbnail) {
 function playCurrent() {
     if (musicIndex < 0 || musicIndex >= musicQueue.length) return;
     const track = musicQueue[musicIndex];
-    musicEmbed.src = "https://www.youtube.com/embed/" + track.id + "?autoplay=1&rel=0&iv_load_policy=3";
     updateThumb(track);
     updateQueueUI();
+    if (ytPlayer && ytPlayer.loadVideoById) {
+        ytPlayer.loadVideoById(track.id);
+    } else {
+        setTimeout(() => { if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(track.id); }, 500);
+    }
 }
 
 function updateThumb(track) {
@@ -1182,16 +1417,27 @@ function updateThumb(track) {
 
 function playNext() {
     if (musicQueue.length === 0) return;
-    if (musicIndex < musicQueue.length - 1) {
+    if (shuffleOn) {
+        let next;
+        do { next = Math.floor(Math.random() * musicQueue.length); } while (next === musicIndex && musicQueue.length > 1);
+        musicIndex = next;
+    } else if (musicIndex < musicQueue.length - 1) {
         musicIndex++;
-        playCurrent();
+    } else if (repeatOn) {
+        musicIndex = 0;
+    } else {
+        return;
     }
+    playCurrent();
 }
 
 function playPrev() {
     if (musicQueue.length === 0) return;
     if (musicIndex > 0) {
         musicIndex--;
+        playCurrent();
+    } else if (repeatOn && musicQueue.length > 0) {
+        musicIndex = musicQueue.length - 1;
         playCurrent();
     }
 }
@@ -1301,7 +1547,7 @@ function updateQueueUI() {
             musicQueue.splice(idx, 1);
             if (idx < musicIndex) musicIndex--;
             else if (idx === musicIndex) {
-                if (musicQueue.length === 0) { musicIndex = -1; musicEmbed.src = "about:blank"; }
+                if (musicQueue.length === 0) { musicIndex = -1; if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo(); }
                 else { if (musicIndex >= musicQueue.length) musicIndex = musicQueue.length - 1; playCurrent(); }
             }
             updateQueueUI();
@@ -1315,9 +1561,46 @@ function showPlayer() {
     frogMusicBtn.classList.add("active");
 }
 
+/* YT API load */
+loadYTAPI();
+
 /* Event listeners */
-musicEmbedPrev.addEventListener("click", playPrev);
-musicEmbedNext.addEventListener("click", playNext);
+prevBtn.addEventListener("click", playPrev);
+playPauseBtn.addEventListener("click", () => {
+    if (!ytPlayer) return;
+    const state = ytPlayer.getPlayerState();
+    if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
+    else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.CUED) ytPlayer.playVideo();
+    else if (musicQueue.length > 0 && musicIndex >= 0) playCurrent();
+});
+nextBtn.addEventListener("click", playNext);
+
+seekSlider.addEventListener("input", () => { seeking = true; });
+seekSlider.addEventListener("change", () => {
+    if (!ytPlayer) return;
+    ytPlayer.seekTo(parseInt(seekSlider.value), true);
+    seeking = false;
+});
+
+shuffleBtn.addEventListener("click", () => {
+    shuffleOn = !shuffleOn;
+    shuffleBtn.classList.toggle("active", shuffleOn);
+    if (shuffleOn) toast("Shuffle on");
+    else toast("Shuffle off");
+});
+repeatBtn.addEventListener("click", () => {
+    repeatOn = !repeatOn;
+    repeatBtn.classList.toggle("active", repeatOn);
+    if (repeatOn) toast("Repeat on");
+    else toast("Repeat off");
+});
+
+volumeSlider.addEventListener("input", () => {
+    if (!ytPlayer) return;
+    const v = parseInt(volumeSlider.value) / 100;
+    ytPlayer.setVolume(v * 100);
+    volumeBtn.textContent = v === 0 ? "🔇" : v < 0.5 ? "🔉" : "🔊";
+});
 
 musicToggleBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleMinimize(); });
 document.getElementById("music-header").addEventListener("click", (e) => {
@@ -1331,6 +1614,11 @@ musicSearchToggle.addEventListener("click", () => {
 
 frogMusicBtn.addEventListener("click", toggleMusicVisibility);
 
+document.getElementById("music-queue-toggle").addEventListener("click", () => {
+    const q = document.getElementById("music-queue");
+    q.style.display = q.style.display === "none" ? "" : "none";
+});
+
 /* Keyboard shortcuts */
 document.addEventListener("keydown", (e) => {
     if (musicHidden) return;
@@ -1338,6 +1626,10 @@ document.addEventListener("keydown", (e) => {
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "SELECT") return;
     if (e.key === "Escape" && !musicSearchArea.classList.contains("music-hidden")) {
         musicSearchArea.classList.add("music-hidden");
+    }
+    if (e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        playPauseBtn.click();
     }
 });
 

@@ -21,6 +21,10 @@ function stripHeaders(response) {
 }
 
 async function handleRequest(event) {
+	const url = new URL(event.request.url);
+	if (url.hostname.endsWith("youtube.com") || url.hostname.endsWith("ytimg.com") || url.hostname.endsWith("googlevideo.com") || url.hostname.endsWith("ggpht.com")) {
+		return fetch(event.request);
+	}
 	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
 		const response = await scramjet.fetch(event);

@@ -9,6 +9,7 @@
     <script src="/baremux/index.js"></script>
     <link rel="stylesheet" href="index.css" />
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
     <script src="firebase-config.js" defer></script>
     <script src="register-sw.js" defer></script>
@@ -92,6 +93,7 @@
                 <button class="nav-tab" data-view="chat">Chat</button>
                 <button class="nav-tab" data-view="ai">AI</button>
                 <button class="nav-tab" data-view="settings">Settings</button>
+                <button class="nav-tab" data-view="account">Account</button>
             </div>
             <div class="nav-right">
                 <span class="online-badge">&#9679; online</span>
@@ -296,6 +298,41 @@
                     </div>
                 </div>
             </div>
+
+            <div id="account-view" class="view">
+                <div class="settings-top">
+                    <h2>Account</h2>
+                </div>
+                <div class="settings-body">
+                    <div class="setting-card" id="account-status-card">
+                        <h3>Sign In</h3>
+                        <p class="setting-desc" id="account-status-desc">Sign in to sync your data across devices</p>
+                        <div id="account-signed-out">
+                            <label>Email
+                                <input id="account-email" type="email" placeholder="your@email.com" />
+                            </label>
+                            <label>Password
+                                <input id="account-password" type="password" placeholder="Password" />
+                            </label>
+                            <div class="modal-actions" style="margin-top:10px">
+                                <button id="account-signin-btn" class="modal-btn primary">Sign In</button>
+                                <button id="account-signup-btn" class="modal-btn ghost">Create Account</button>
+                            </div>
+                            <p id="account-error" style="color:var(--pink);font-size:12px;margin-top:6px;display:none"></p>
+                        </div>
+                        <div id="account-signed-in" style="display:none">
+                            <p style="margin-bottom:8px">Signed in as <strong id="account-email-display"></strong></p>
+                            <button id="account-signout-btn" class="modal-btn ghost">Sign Out</button>
+                        </div>
+                    </div>
+                    <div class="setting-card" id="account-sync-card">
+                        <h3>Cloud Sync</h3>
+                        <p class="setting-desc">Data synced when signed in: messages, settings, shortcuts, music queue, AI chats</p>
+                        <button id="account-sync-btn" class="modal-btn primary" disabled>Sync Now</button>
+                        <p id="account-sync-status" style="font-size:11px;color:var(--muted);margin-top:4px"></p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -381,13 +418,25 @@
                 <div id="music-results"></div>
             </div>
             <div id="music-player-area">
-                <div class="music-embed-wrap">
-                    <iframe id="music-embed" width="100%" height="200" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen src="about:blank"></iframe>
-                </div>
-                <div id="music-embed-controls">
-                    <button id="music-embed-prev" title="Previous">⏮</button>
-                    <button id="music-embed-next" title="Next">⏭</button>
-                    <button id="music-embed-queue-toggle" title="Queue">☰</button>
+                <div id="music-yt-player"></div>
+                <div id="music-controls">
+                    <div id="music-controls-row">
+                        <button id="music-prev" title="Previous">⏮</button>
+                        <button id="music-play-pause" title="Play/Pause">▶</button>
+                        <button id="music-next" title="Next">⏭</button>
+                    </div>
+                    <div id="music-progress">
+                        <span id="music-time-current">0:00</span>
+                        <input type="range" id="music-seek" min="0" max="100" value="0" />
+                        <span id="music-time-total">0:00</span>
+                    </div>
+                    <div id="music-controls-row2">
+                        <button id="music-shuffle" title="Shuffle">🔀</button>
+                        <button id="music-repeat" title="Repeat">🔁</button>
+                        <button id="music-volume-btn" title="Volume">🔊</button>
+                        <input type="range" id="music-volume-slider" min="0" max="100" value="100" />
+                        <button id="music-queue-toggle" title="Queue">☰</button>
+                    </div>
                 </div>
                 <div id="music-queue">
                     <div class="music-queue-header">
