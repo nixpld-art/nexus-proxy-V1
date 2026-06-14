@@ -1834,16 +1834,6 @@ html, body {
     pointer-events: none;
     transform: translateY(10px);
 }
-#music-player.music-api-failed::after {
-    content: "YouTube player blocked — try disabling adblocker";
-    display: block;
-    text-align: center;
-    padding: 8px 12px;
-    font-size: 11px;
-    background: rgba(255,60,60,0.15);
-    color: #ff6b6b;
-    border-top: 1px solid rgba(255,60,60,0.2);
-}
 
 /* Header */
 #music-header {
@@ -1984,128 +1974,36 @@ html, body {
 
 /* Player area */
 #music-player-area {
-    padding: 10px;
+    padding: 8px 10px 6px;
 }
-#music-now-full {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-#music-full-thumb {
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
-    object-fit: cover;
-    flex-shrink: 0;
-    display: none;
-}
-#music-full-thumb[src]:not([src=""]) { display: block; }
-.music-full-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-#music-full-title {
-    font-weight: 600;
-    font-size: 13px;
-    white-space: nowrap;
+.music-embed-wrap {
+    border-radius: 8px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    margin-bottom: 6px;
 }
-#music-full-author {
-    font-size: 11px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+#music-embed {
+    display: block;
+    border: none;
+    border-radius: 8px;
 }
-
-/* Progress */
-#music-progress {
+#music-embed-controls {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-#music-progress span {
-    font-size: 10px;
-    color: var(--muted);
-    min-width: 32px;
-    text-align: center;
-}
-#music-progress-bar {
-    flex: 1;
-    height: 4px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-}
-#music-progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    border-radius: 4px;
-    transition: width 0.2s linear;
-}
-
-/* Controls */
-#music-controls {
-    display: flex;
-    align-items: center;
+    gap: 6px;
     justify-content: center;
-    gap: 10px;
     margin-bottom: 8px;
 }
-.music-ctrl-btn {
-    background: none;
+#music-embed-controls button {
+    background: rgba(255,255,255,0.06);
     border: none;
     color: var(--text);
+    font-size: 16px;
     cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s, color 0.15s;
+    padding: 4px 12px;
+    border-radius: 6px;
+    transition: background 0.12s;
 }
-.music-ctrl-btn:hover { background: rgba(255,255,255,0.08); }
-.music-ctrl-btn.active { color: var(--accent); }
-.music-play-btn {
-    width: 36px;
-    height: 36px;
-    background: var(--accent);
-    border-radius: 50%;
-    color: #111;
-}
-.music-play-btn:hover { background: var(--accent); opacity: 0.85; }
-
-/* Volume */
-#music-volume-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    color: var(--muted);
-}
-#music-volume {
-    flex: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 4px;
-    outline: none;
-    cursor: pointer;
-}
-#music-volume::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
+#music-embed-controls button:hover {
+    background: rgba(255,255,255,0.12);
 }
 
 /* Queue */

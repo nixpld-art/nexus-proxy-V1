@@ -1126,19 +1126,10 @@ aiForm.addEventListener("submit", async (e) => {
 });
 
 /* ── Music Player ── */
-let ytReady = false;
-let ytFrame = null;
-let ytState = -1;
-let ytDuration = 0;
-let ytCurrentTime = 0;
-let ytProgressInterval = null;
 const musicQueue = [];
 let musicIndex = -1;
-let musicShuffle = false;
-let musicRepeat = false;
 let musicMinimized = true;
 let musicHidden = false;
-let musicProgressInterval = null;
 const FALLBACK_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
 window.FALLBACK_THUMB = FALLBACK_THUMB;
 
@@ -1146,54 +1137,18 @@ const musicEl = document.getElementById("music-player");
 const musicThumb = document.getElementById("music-thumb");
 const musicTitle = document.getElementById("music-title");
 const musicAuthor = document.getElementById("music-author");
-const musicFullThumb = document.getElementById("music-full-thumb");
-const musicFullTitle = document.getElementById("music-full-title");
-const musicFullAuthor = document.getElementById("music-full-author");
-const musicPlayBtn = document.getElementById("music-play-btn");
-const musicPlayIcon = document.getElementById("music-play-icon");
-const musicPrevBtn = document.getElementById("music-prev-btn");
-const musicNextBtn = document.getElementById("music-next-btn");
-const musicShuffleBtn = document.getElementById("music-shuffle-btn");
-const musicRepeatBtn = document.getElementById("music-repeat-btn");
+const musicEmbed = document.getElementById("music-embed");
 const musicSearchInput = document.getElementById("music-search-input");
 const musicResults = document.getElementById("music-results");
 const musicSearchToggle = document.getElementById("music-search-toggle");
 const musicSearchArea = document.getElementById("music-search-area");
 const musicToggleBtn = document.getElementById("music-toggle-btn");
 const musicToggleIcon = document.getElementById("music-toggle-icon");
-const musicProgressFill = document.getElementById("music-progress-fill");
-const musicProgressBar = document.getElementById("music-progress-bar");
-const musicCurrentTime = document.getElementById("music-current-time");
-const musicDuration = document.getElementById("music-duration");
-const musicVolume = document.getElementById("music-volume");
 const musicQueueList = document.getElementById("music-queue-list");
 const musicQueueCount = document.getElementById("music-queue-count");
+const musicEmbedPrev = document.getElementById("music-embed-prev");
+const musicEmbedNext = document.getElementById("music-embed-next");
 const frogMusicBtn = document.getElementById("frog-music-btn");
-
-function setupYouTubePlayer() {
-    if (ytFrame) return;
-    ytFrame = document.createElement("iframe");
-    ytFrame.id = "music-youtube-frame";
-    ytFrame.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;border:none";
-    ytFrame.allow = "autoplay; encrypted-media";
-    ytFrame.src = "about:blank";
-    document.body.appendChild(ytFrame);
-    window.addEventListener("message", handleYouTubeMessage);
-    ytReady = true;
-}
-
-function sendYouTubeCommand(func, args) {
-    if (!ytFrame || !ytFrame.contentWindow) return;
-    ytFrame.contentWindow.postMessage(JSON.stringify({
-        event: "command", func, args: args || []
-    }), "*");
-}
-
-function updatePlayIcon(playing) {
-    musicPlayIcon.innerHTML = playing
-        ? '<rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/>'
-        : '<polygon points="5 3 19 12 5 21 5 3"/>';
-}
 
 function playSong(videoId, title, author, thumbnail) {
     const existingIdx = musicQueue.findIndex(t => t.id === videoId);
@@ -1203,141 +1158,41 @@ function playSong(videoId, title, author, thumbnail) {
         musicQueue.push({ id: videoId, title, author, thumbnail });
         musicIndex = musicQueue.length - 1;
     }
-    updateNowPlaying(musicQueue[musicIndex]);
+    playCurrent();
     updateQueueUI();
     showPlayer();
-    if (!ytFrame) setupYouTubePlayer();
-    playCurrent();
 }
 
 function playCurrent() {
     if (musicIndex < 0 || musicIndex >= musicQueue.length) return;
     const track = musicQueue[musicIndex];
-    if (!ytFrame) setupYouTubePlayer();
-    const parts = (track.duration || "0:00").split(":").map(Number);
-    ytDurationLocal = parts.length === 3 ? parts[0]*3600 + parts[1]*60 + parts[2] : parts.length === 2 ? parts[0]*60 + parts[1] : parts[0] || 0;
-    ytPlayedTime = 0;
-    ytPlayStartTime = Date.now();
-    const origin = location.origin || (location.protocol + "//" + location.host);
-    ytFrame.src = "https://www.youtube.com/embed/" + track.id + "?enablejsapi=1&controls=0&autoplay=1&origin=" + encodeURIComponent(origin) + "&rel=0&iv_load_policy=3";
-    updateNowPlaying(track);
+    musicEmbed.src = "https://www.youtube.com/embed/" + track.id + "?autoplay=1&rel=0&iv_load_policy=3";
+    updateThumb(track);
     updateQueueUI();
-    if (musicProgressInterval) clearInterval(musicProgressInterval);
-    musicProgressInterval = setInterval(updateProgress, 500);
 }
 
-function updateNowPlaying(track) {
+function updateThumb(track) {
     const thumb = track.thumbnail || `https://i.ytimg.com/vi/${track.id}/mqdefault.jpg`;
     musicThumb.src = thumb;
     musicThumb.onerror = () => { musicThumb.src = window.FALLBACK_THUMB; };
     musicTitle.textContent = track.title;
     musicAuthor.textContent = track.author;
-    musicFullThumb.src = thumb;
-    musicFullThumb.onerror = () => { musicFullThumb.src = window.FALLBACK_THUMB; };
-    musicFullTitle.textContent = track.title;
-    musicFullAuthor.textContent = track.author;
-}
-
-function updateProgress() {
-    if (ytState === 1) {
-        const elapsed = ytPlayedTime + (Date.now() - ytPlayStartTime) / 1000;
-        if (ytDurationLocal > 0) {
-            const pct = (elapsed / ytDurationLocal) * 100;
-            musicProgressFill.style.width = Math.min(pct, 100) + "%";
-        }
-        musicCurrentTime.textContent = formatTime(elapsed);
-        musicDuration.textContent = formatTime(ytDurationLocal);
-    }
-}
-
-function handleYouTubeMessage(e) {
-    if (!ytFrame || e.source !== ytFrame.contentWindow) return;
-    let data;
-    try { data = JSON.parse(e.data); } catch { return; }
-    if (data.event === "onReady") {
-        sendYouTubeCommand("setVolume", [parseInt(musicVolume.value)]);
-        if (musicIndex >= 0 && musicIndex < musicQueue.length) {
-            playCurrent();
-        }
-    } else if (data.event === "onStateChange") {
-        ytState = data.info;
-        if (ytState === 1) {
-            ytPlayStartTime = Date.now();
-            ytPlayedTime = 0;
-            musicProgressInterval = setInterval(updateProgress, 500);
-        } else if (ytState === 2) {
-            ytPlayedTime += (Date.now() - ytPlayStartTime) / 1000;
-            clearInterval(musicProgressInterval);
-        }
-        updatePlayIcon(ytState === 1);
-        if (ytState === 0) {
-            clearInterval(musicProgressInterval);
-            ytPlayedTime = 0;
-            if (musicRepeat) {
-                sendYouTubeCommand("playVideo", []);
-            } else if (musicIndex < musicQueue.length - 1) {
-                musicIndex++;
-                playCurrent();
-            } else if (musicShuffle) {
-                musicIndex = Math.floor(Math.random() * musicQueue.length);
-                playCurrent();
-            } else {
-                updatePlayIcon(false);
-            }
-        }
-    } else if (data.event === "onError") {
-        toast("Can't play this video");
-        if (musicQueue.length > 1) playNext();
-        else stopPlayback();
-    }
-}
-
-function togglePlay() {
-    if (!ytReady || musicIndex < 0) return;
-    if (ytState === 1) {
-        sendYouTubeCommand("pauseVideo", []);
-    } else {
-        sendYouTubeCommand("playVideo", []);
-    }
 }
 
 function playNext() {
     if (musicQueue.length === 0) return;
-    if (musicShuffle) {
-        musicIndex = Math.floor(Math.random() * musicQueue.length);
-    } else if (musicIndex < musicQueue.length - 1) {
+    if (musicIndex < musicQueue.length - 1) {
         musicIndex++;
-    } else if (musicRepeat) {
-        musicIndex = 0;
-    } else return;
-    playCurrent();
+        playCurrent();
+    }
 }
 
 function playPrev() {
     if (musicQueue.length === 0) return;
-    const curTime = ytPlayedTime + (ytState === 1 ? (Date.now() - ytPlayStartTime) / 1000 : 0);
-    if (curTime > 3) {
-        sendYouTubeCommand("seekTo", [0, true]);
-        ytPlayStartTime = Date.now();
-        ytPlayedTime = 0;
-        return;
-    }
     if (musicIndex > 0) {
         musicIndex--;
-    } else if (musicRepeat) {
-        musicIndex = musicQueue.length - 1;
-    } else return;
-    playCurrent();
-}
-
-function toggleShuffle() {
-    musicShuffle = !musicShuffle;
-    musicShuffleBtn.classList.toggle("active", musicShuffle);
-}
-
-function toggleRepeat() {
-    musicRepeat = !musicRepeat;
-    musicRepeatBtn.classList.toggle("active", musicRepeat);
+        playCurrent();
+    }
 }
 
 function toggleMinimize() {
@@ -1434,24 +1289,6 @@ function updateQueueUI() {
     });
 }
 
-function stopPlayback() {
-    if (ytFrame) ytFrame.src = "about:blank";
-    clearInterval(musicProgressInterval);
-    ytPlayedTime = 0;
-    ytDurationLocal = 0;
-    ytState = -1;
-    musicProgressFill.style.width = "0%";
-    musicCurrentTime.textContent = "0:00";
-    musicDuration.textContent = "0:00";
-    musicThumb.removeAttribute("src");
-    musicFullThumb.removeAttribute("src");
-    musicTitle.textContent = "No track";
-    musicAuthor.textContent = "";
-    musicFullTitle.textContent = "No track selected";
-    musicFullAuthor.textContent = "";
-    updatePlayIcon(false);
-}
-
 function showPlayer() {
     musicHidden = false;
     musicEl.classList.remove("music-hidden");
@@ -1459,11 +1296,8 @@ function showPlayer() {
 }
 
 /* Event listeners */
-musicPlayBtn.addEventListener("click", togglePlay);
-musicNextBtn.addEventListener("click", playNext);
-musicPrevBtn.addEventListener("click", playPrev);
-musicShuffleBtn.addEventListener("click", toggleShuffle);
-musicRepeatBtn.addEventListener("click", toggleRepeat);
+musicEmbedPrev.addEventListener("click", playPrev);
+musicEmbedNext.addEventListener("click", playNext);
 
 musicToggleBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleMinimize(); });
 document.getElementById("music-header").addEventListener("click", (e) => {
@@ -1477,27 +1311,11 @@ musicSearchToggle.addEventListener("click", () => {
 
 frogMusicBtn.addEventListener("click", toggleMusicVisibility);
 
-musicVolume.addEventListener("input", () => {
-    sendYouTubeCommand("setVolume", [parseInt(musicVolume.value)]);
-});
-
-musicProgressBar.addEventListener("click", (e) => {
-    if (ytDurationLocal <= 0) return;
-    const rect = musicProgressBar.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    const seekTo = ytDurationLocal * Math.max(0, Math.min(1, pct));
-    sendYouTubeCommand("seekTo", [seekTo, true]);
-    ytPlayStartTime = Date.now();
-    ytPlayedTime = seekTo;
-});
-
 /* Keyboard shortcuts */
 document.addEventListener("keydown", (e) => {
     if (musicHidden) return;
     const tag = e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "SELECT") return;
-    if (e.target.type === "range") return;
-    if (e.code === "Space" && !e.repeat) { e.preventDefault(); togglePlay(); }
     if (e.key === "Escape" && !musicSearchArea.classList.contains("music-hidden")) {
         musicSearchArea.classList.add("music-hidden");
     }
