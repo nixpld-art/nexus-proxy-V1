@@ -521,16 +521,136 @@ async function autoCloakRedirect() {
     const cloak = cloakMap[activeCloak];
     if (!cloak) return;
     await ensureProxy();
+    const win = window.open("about:blank", "_blank");
+    if (!win) return;
     const frameUrl = tab?.url
         ? location.origin + activeProxy.encodeUrl(tab.url)
         : location.href;
-    const win = window.open("about:blank", "_blank");
-    if (win) {
-        win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + cloak.title + '</title><link id="cloakFavicon" rel="shortcut icon" href="' + cloak.icon + '"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}iframe{width:100%;height:100%;border:none;display:block}</style></head><body><iframe id="cloakFrame" src="' + frameUrl + '" allow="autoplay; fullscreen; clipboard-read; clipboard-write"></iframe><script>const icon="' + cloak.icon + '";const link=document.getElementById("cloakFavicon");function force(){link.href=icon;}document.getElementById("cloakFrame").onload=force;setInterval(force,500);<\/script></body></html>');
-        win.document.close();
-        blankWindows.push(win);
-        window.location.replace("https://www.google.com");
-    }
+    const musicState = JSON.stringify(getMusicState()).replace(/<\/script>/gi, '<\\/script>');
+    const thumbSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a1a2e' rx='8'/%3E%3Ctext x='50' y='65' text-anchor='middle' font-size='35' fill='%23888'%3E%E2%99%AA%3C/text%3E%3C/svg%3E";
+    win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${cloak.title}</title>
+<link id="cloakFavicon" rel="shortcut icon" href="${cloak.icon}">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0a0a12;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px}
+#cloakFrame{width:100%;height:100%;border:none;display:block}
+#music-player{position:fixed;bottom:14px;right:14px;z-index:999999;background:rgba(10,10,18,0.85);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.06);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.6);overflow:hidden;width:320px;max-height:520px}
+#music-player.music-minimized{width:220px;border-radius:10px;cursor:pointer}
+#music-header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px}
+.music-minimized #music-header{border-bottom:none}
+.music-compact{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.music-compact img{width:30px;height:30px;border-radius:6px;object-fit:cover;flex-shrink:0;display:none}
+.music-compact img[src]:not([src=""]){display:block}
+.music-info{display:flex;flex-direction:column;min-width:0}
+#music-title{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e0e0e0}
+#music-author{font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-header-btns{display:flex;gap:4px;flex-shrink:0}
+.music-icon-btn{background:none;border:none;color:#888;cursor:pointer;padding:3px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s}
+.music-icon-btn:hover{background:rgba(255,255,255,0.06);color:#e0e0e0}
+#music-body{transition:max-height 0.3s ease,padding 0.3s ease;max-height:460px;overflow-y:auto;padding:0 10px 10px}
+.music-minimized #music-body{max-height:0;padding:0;overflow:hidden}
+#music-player-area{padding:10px 0}
+#music-now-full{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+#music-full-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0;display:none}
+#music-full-thumb[src]:not([src=""]){display:block}
+.music-full-info{display:flex;flex-direction:column;min-width:0}
+#music-full-title{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#music-full-author{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#music-progress{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#music-progress span{font-size:10px;color:#888;min-width:32px;text-align:center}
+#music-progress-bar{flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;position:relative}
+#music-progress-fill{height:100%;width:0%;background:#00cc7a;border-radius:4px;transition:width 0.2s linear}
+#music-controls{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+.music-ctrl-btn{background:none;border:none;color:#e0e0e0;cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s}
+.music-ctrl-btn:hover{background:rgba(255,255,255,0.08)}
+.music-ctrl-btn.active{color:#00cc7a}
+.music-play-btn{background:#00cc7a;color:#0a0a12;border-radius:50%;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center}
+.music-play-btn:hover{opacity:0.85}
+#music-volume-wrap{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+#music-volume{flex:1;-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,0.1);border-radius:3px;outline:none}
+#music-volume::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:#00cc7a;cursor:pointer}
+#music-queue{border-top:1px solid rgba(255,255,255,0.04);padding-top:6px}
+.music-queue-header{display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px}
+#music-queue-list{max-height:160px;overflow-y:auto}
+.music-qitem{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:6px;cursor:pointer;transition:background 0.12s}
+.music-qitem:hover{background:rgba(255,255,255,0.04)}
+.music-qitem.active{background:rgba(0,204,122,0.06)}
+.music-qitem img{width:24px;height:16px;border-radius:3px;object-fit:cover;flex-shrink:0}
+.q-title{flex:1;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-remove{background:none;border:none;color:#888;cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.q-remove:hover{color:#ff4444}
+.music-loading{display:flex;gap:4px;justify-content:center;padding:12px}
+.music-loading span{width:6px;height:6px;border-radius:50%;background:#00cc7a;animation:mb 1s infinite}
+.music-loading span:nth-child(2){animation-delay:0.15s}
+.music-loading span:nth-child(3){animation-delay:0.3s}
+@keyframes mb{0%,80%,100%{opacity:0.3}40%{opacity:1}}
+#music-player.music-api-failed::after{content:"YT API unavailable";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,10,18,0.9);color:#888;font-size:12px;z-index:10}
+#music-search-area{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+#music-search-area.music-hidden{display:none}
+.music-search-wrap input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:7px 10px;color:#e0e0e0;font-size:12px;outline:none;box-sizing:border-box}
+.music-search-wrap input:focus{border-color:rgba(0,204,122,0.4)}
+#music-results{max-height:200px;overflow-y:auto;margin-top:6px}
+.music-result-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background 0.12s}
+.music-result-item:hover{background:rgba(255,255,255,0.06)}
+.music-result-item img{width:36px;height:20px;border-radius:4px;object-fit:cover;flex-shrink:0}
+.r-title{flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-meta{font-size:10px;color:#888;white-space:nowrap}
+</style></head><body>
+<iframe id="cloakFrame" src="${frameUrl}" allow="autoplay; fullscreen; clipboard-read; clipboard-write"></iframe>
+<div id="music-player" class="music-minimized">
+<div id="music-header">
+<div id="music-now-playing" class="music-compact">
+<img id="music-thumb" src="" alt="" onerror="this.src='${thumbSvg}'" />
+<div class="music-info"><span id="music-title">No track</span><span id="music-author"></span></div>
+</div>
+<div class="music-header-btns">
+<button id="music-search-toggle" class="music-icon-btn" title="Search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+<button id="music-toggle-btn" class="music-icon-btn" title="Minimize"><svg id="music-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+</div>
+</div>
+<div id="music-body">
+<div id="music-search-area" class="music-hidden">
+<div class="music-search-wrap"><input id="music-search-input" type="text" placeholder="Search songs..." /></div>
+<div id="music-results"></div>
+</div>
+<div id="music-player-area">
+<div id="music-now-full">
+<img id="music-full-thumb" src="" alt="" onerror="this.src='${thumbSvg}'" />
+<div class="music-full-info"><span id="music-full-title">No track selected</span><span id="music-full-author"></span></div>
+</div>
+<div id="music-progress">
+<span id="music-current-time">0:00</span>
+<div id="music-progress-bar"><div id="music-progress-fill"></div></div>
+<span id="music-duration">0:00</span>
+</div>
+<div id="music-controls">
+<button id="music-shuffle-btn" class="music-ctrl-btn" title="Shuffle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
+<button id="music-prev-btn" class="music-ctrl-btn" title="Previous"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="19 20 9 12 19 4 19 20"/><line y1="4" x2="4" y2="4" stroke="currentColor" stroke-width="2.5"/><line y1="20" x2="4" y2="20" stroke="currentColor" stroke-width="2.5"/></svg></button>
+<button id="music-play-btn" class="music-ctrl-btn music-play-btn" title="Play"><svg id="music-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+<button id="music-next-btn" class="music-ctrl-btn" title="Next"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="4" x2="19" y2="20" stroke="currentColor" stroke-width="2.5"/></svg></button>
+<button id="music-repeat-btn" class="music-ctrl-btn" title="Repeat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+</div>
+<div id="music-volume-wrap">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+<input id="music-volume" type="range" min="0" max="100" value="80" />
+</div>
+<div id="music-queue">
+<div class="music-queue-header"><span>Queue</span><span id="music-queue-count">0 songs</span></div>
+<div id="music-queue-list"></div>
+</div>
+</div>
+</div>
+</div>
+<div id="music-youtube-player" style="position:absolute;width:0;height:0;overflow:hidden"></div>
+<script>window._musicState=${musicState};<\/script>
+<script src="/blank-player.js"><\/script>
+<script>const icon="${cloak.icon}";const link=document.getElementById("cloakFavicon");function force(){link.href=icon;}document.getElementById("cloakFrame").onload=force;setInterval(force,500);<\/script>
+</body></html>`);
+    win.document.close();
+    blankWindows.push(win);
+    window.location.replace("https://www.google.com");
 }
 
 document.querySelectorAll(".cloak-btn").forEach((btn) => {
@@ -1548,6 +1668,18 @@ function showPlayer() {
     musicHidden = false;
     musicEl.classList.remove("music-hidden");
     frogMusicBtn.classList.add("active");
+}
+
+function getMusicState() {
+    return {
+        queue: musicQueue.map(function (t) { return { id: t.id, title: t.title, author: t.author, thumbnail: t.thumbnail }; }),
+        index: musicIndex,
+        shuffle: shuffleOn,
+        repeat: repeatOn,
+        minimized: musicMinimized,
+        volume: parseInt(volumeSlider.value),
+        currentTime: 0,
+    };
 }
 
 /* Event listeners */
