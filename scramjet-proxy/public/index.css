@@ -1995,13 +1995,6 @@ html, body {
     padding: 8px 10px 6px;
     position: relative;
 }
-#music-yt-player {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 1px;
-    height: 1px;
-}
 .music-minimized #music-controls,
 .music-minimized #music-queue {
     display: none;

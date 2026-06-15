@@ -1311,16 +1311,14 @@ aiForm.addEventListener("submit", async (e) => {
     }
 });
 
-/* ── Music Player ── */
+/* ── Music Player (postMessage/embed) ── */
 const musicQueue = [];
 let musicIndex = -1;
 let musicMinimized = true;
 let musicHidden = false;
-let ytPlayer = null;
-let ytReady = false;
 let shuffleOn = false;
 let repeatOn = false;
-let seeking = false;
+let isPlaying = false;
 const FALLBACK_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
 window.FALLBACK_THUMB = FALLBACK_THUMB;
 
@@ -1328,6 +1326,7 @@ const musicEl = document.getElementById("music-player");
 const musicThumb = document.getElementById("music-thumb");
 const musicTitle = document.getElementById("music-title");
 const musicAuthor = document.getElementById("music-author");
+const musicEmbed = document.getElementById("music-embed");
 const musicSearchInput = document.getElementById("music-search-input");
 const musicResults = document.getElementById("music-results");
 const musicSearchToggle = document.getElementById("music-search-toggle");
@@ -1340,74 +1339,38 @@ const frogMusicBtn = document.getElementById("frog-music-btn");
 const playPauseBtn = document.getElementById("music-play-pause");
 const prevBtn = document.getElementById("music-prev");
 const nextBtn = document.getElementById("music-next");
-const seekSlider = document.getElementById("music-seek");
-const timeCurrent = document.getElementById("music-time-current");
-const timeTotal = document.getElementById("music-time-total");
 const shuffleBtn = document.getElementById("music-shuffle");
 const repeatBtn = document.getElementById("music-repeat");
 const volumeBtn = document.getElementById("music-volume-btn");
 const volumeSlider = document.getElementById("music-volume-slider");
 
-function loadYTAPI() {
-    if (window.YT && window.YT.Player) { onYTReady(); return; }
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    const first = document.getElementsByTagName("script")[0];
-    first.parentNode.insertBefore(tag, first);
-}
-window.onYouTubeIframeAPIReady = onYTReady;
-
-function onYTReady() {
-    ytReady = true;
-    ytPlayer = new YT.Player("music-yt-player", {
-        height: "200",
-        width: "100%",
-        playerVars: {
-            autoplay: 0,
-            controls: 0,
-            rel: 0,
-            iv_load_policy: 3,
-            modestbranding: 1,
-        },
-        events: {
-            onReady: () => { if (musicQueue.length > 0) playCurrent(); },
-            onStateChange: onPlayerStateChange,
-            onError: () => { playNext(); },
-        },
-    });
+function postToYT(msg) {
+    try { musicEmbed.contentWindow.postMessage(JSON.stringify(msg), "*"); } catch (e) {}
 }
 
-function onPlayerStateChange(e) {
-    if (e.data === YT.PlayerState.PLAYING) {
-        playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
-        if (!seeking) updateProgress();
-    } else if (e.data === YT.PlayerState.PAUSED) {
-        playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-    } else if (e.data === YT.PlayerState.ENDED) {
-        playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-        playNext();
-    } else if (e.data === YT.PlayerState.CUED) {
-        if (musicMinimized) toggleMinimize();
-        showPlayer();
+/* Listen for YouTube embed events via postMessage */
+window.addEventListener("message", (e) => {
+    if (!e.data || typeof e.data !== "string") return;
+    let data;
+    try { data = JSON.parse(e.data); } catch (x) { return; }
+    if (data.channel !== "widget") return;
+    if (data.event === "onReady") {
+        if (musicQueue.length > 0) playCurrent();
     }
-}
-
-function updateProgress() {
-    if (!ytPlayer || !ytPlayer.getCurrentTime) return;
-    const cur = ytPlayer.getCurrentTime();
-    const dur = ytPlayer.getDuration() || 1;
-    seekSlider.max = Math.floor(dur);
-    seekSlider.value = Math.floor(cur);
-    timeCurrent.textContent = formatTime(cur);
-    timeTotal.textContent = formatTime(dur);
-    if (!seeking) requestAnimationFrame(updateProgress);
-}
-
-function formatTime(t) {
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t % 60);
-    return m + ":" + (s < 10 ? "0" : "") + s;
-}
+    if (data.event === "onStateChange") {
+        if (data.info === 1) {
+            isPlaying = true;
+            playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+        } else if (data.info === 2) {
+            isPlaying = false;
+            playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+        } else if (data.info === 0) {
+            isPlaying = false;
+            playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            playNext();
+        }
+    }
+});
 
 function playSong(videoId, title, author, thumbnail) {
     const existingIdx = musicQueue.findIndex(t => t.id === videoId);
@@ -1428,11 +1391,9 @@ function playCurrent() {
     const track = musicQueue[musicIndex];
     updateThumb(track);
     updateQueueUI();
-    if (ytPlayer && ytPlayer.loadVideoById) {
-        ytPlayer.loadVideoById(track.id);
-    } else {
-        setTimeout(() => { if (ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(track.id); }, 500);
-    }
+    isPlaying = true;
+    playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+    musicEmbed.src = "https://www.youtube.com/embed/" + track.id + "?autoplay=1&controls=0&enablejsapi=1&rel=0&iv_load_policy=3&modestbranding=1";
 }
 
 function updateThumb(track) {
@@ -1575,7 +1536,7 @@ function updateQueueUI() {
             musicQueue.splice(idx, 1);
             if (idx < musicIndex) musicIndex--;
             else if (idx === musicIndex) {
-                if (musicQueue.length === 0) { musicIndex = -1; if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo(); }
+                if (musicQueue.length === 0) { musicIndex = -1; musicEmbed.src = "about:blank"; }
                 else { if (musicIndex >= musicQueue.length) musicIndex = musicQueue.length - 1; playCurrent(); }
             }
             updateQueueUI();
@@ -1589,26 +1550,17 @@ function showPlayer() {
     frogMusicBtn.classList.add("active");
 }
 
-/* YT API load */
-loadYTAPI();
-
 /* Event listeners */
 prevBtn.addEventListener("click", playPrev);
 playPauseBtn.addEventListener("click", () => {
-    if (!ytPlayer) return;
-    const state = ytPlayer.getPlayerState();
-    if (state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo();
-    else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.CUED) ytPlayer.playVideo();
-    else if (musicQueue.length > 0 && musicIndex >= 0) playCurrent();
+    if (!musicEmbed || musicEmbed.src === "about:blank") { if (musicQueue.length > 0) playCurrent(); return; }
+    if (isPlaying) {
+        postToYT({ event: "command", func: "pauseVideo", args: "" });
+    } else {
+        postToYT({ event: "command", func: "playVideo", args: "" });
+    }
 });
 nextBtn.addEventListener("click", playNext);
-
-seekSlider.addEventListener("input", () => { seeking = true; });
-seekSlider.addEventListener("change", () => {
-    if (!ytPlayer) return;
-    ytPlayer.seekTo(parseInt(seekSlider.value), true);
-    seeking = false;
-});
 
 shuffleBtn.addEventListener("click", () => {
     shuffleOn = !shuffleOn;
@@ -1624,9 +1576,7 @@ repeatBtn.addEventListener("click", () => {
 });
 
 volumeSlider.addEventListener("input", () => {
-    if (!ytPlayer) return;
     const v = parseInt(volumeSlider.value) / 100;
-    ytPlayer.setVolume(v * 100);
     volumeBtn.innerHTML = v === 0
         ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
         : v < 0.5
