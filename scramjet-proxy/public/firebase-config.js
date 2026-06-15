@@ -10,10 +10,17 @@ const firebaseConfig = {
 };
 
 try {
-  if (window.firebase && !firebase.apps.length) {
+  if (typeof firebase !== "undefined" && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
+    console.log("Firebase initialized OK");
   }
-  window.kHubFirebaseDb = window.firebase ? firebase.database() : null;
+  if (typeof firebase !== "undefined") {
+    window.kHubFirebaseDb = firebase.database();
+    console.log("Firebase DB ready");
+  } else {
+    window.kHubFirebaseDb = null;
+    console.error("Firebase SDK not loaded");
+  }
 } catch (error) {
   window.kHubFirebaseDb = null;
   console.error("Firebase setup failed:", error);

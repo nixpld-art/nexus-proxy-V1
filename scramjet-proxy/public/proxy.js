@@ -24,6 +24,28 @@ function swReadyWithTimeout(ms) {
     });
 }
 
+/* Server-side proxy engine — works without service workers (school Chromebook fix) */
+const serverProxyEngine = {
+    name: "Server Proxy",
+    id: "server",
+    _proxyBase: "/api/proxy/",
+    async init() {},
+    createFrame() {
+        const iframe = document.createElement("iframe");
+        iframe.style.cssText = "width:100%;height:100%;border:none;display:block";
+        return { frame: iframe, go: (u) => { iframe.src = this._proxyBase + encodeURIComponent(u); } };
+    },
+    encodeUrl(url) { return this._proxyBase + encodeURIComponent(url); },
+    decodeUrl(url) {
+        try {
+            const prefix = this._proxyBase;
+            if (url.startsWith(prefix)) return decodeURIComponent(url.slice(prefix.length));
+            return url;
+        } catch { return url; }
+    },
+    navigate(frame, url) { frame.frame.src = this._proxyBase + encodeURIComponent(url); },
+};
+
 /* Ultimate fallback: raw iframe, no proxy rewriting */
 const directFallbackEngine = {
     name: "Direct",

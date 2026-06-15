@@ -5,18 +5,24 @@ let activeProxy = null;
 let proxyInitPromise = null;
 
 async function initProxy() {
-    const engine = ProxyEngines.scramjet;
-    try {
-        await engine.init();
-        activeProxy = engine;
-        try { localStorage.setItem("nexus-proxy", engine.id); } catch (e) {}
-        return engine;
-    } catch (e) {
-        console.error("Proxy init failed:", e);
-        toast("Proxy engine unavailable, using direct mode");
-        activeProxy = directFallbackEngine;
-        return activeProxy;
+    let preferred = "scramjet";
+    try { preferred = localStorage.getItem("nexus-proxy") || "scramjet"; } catch (e) {}
+    const engineMap = { scramjet: ProxyEngines.scramjet, server: serverProxyEngine, direct: directFallbackEngine };
+    const engineOrder = [engineMap[preferred], ProxyEngines.scramjet, serverProxyEngine, directFallbackEngine];
+
+    for (const engine of new Set(engineOrder)) {
+        if (!engine) continue;
+        try {
+            await engine.init();
+            activeProxy = engine;
+            if (engine.id === "server") toast("Using server-side proxy (no service worker needed)");
+            return engine;
+        } catch (e) {
+            console.warn("Proxy engine " + engine.id + " failed:", e);
+        }
     }
+    activeProxy = directFallbackEngine;
+    return activeProxy;
 }
 
 /* Particle background */
@@ -228,6 +234,17 @@ async function navigateTab(id, url) {
     activeProxy.navigate(tab.frame, url);
     tab.titleEl.textContent = hostnameFromUrl(url);
     document.getElementById("frog-url").value = url;
+    // Detect proxy failure: if the iframe loads an error page showing the real URL
+    clearTimeout(tab._proxyCheck);
+    tab._proxyCheck = setTimeout(() => {
+        try {
+            const doc = tab.frame.frame.contentDocument || tab.frame.frame.contentWindow?.document;
+            if (doc && doc.body && doc.body.textContent && doc.body.textContent.length < 500 &&
+                doc.body.textContent.includes("http")) {
+                toast("Proxy blocked — your network may restrict proxies. Try a different network or use Direct mode.");
+            }
+        } catch (e) {}
+    }, 6000);
     autoCloakRedirect();
 }
 
@@ -492,7 +509,6 @@ proxySelect.addEventListener("change", async () => {
     const val = proxySelect.value;
     try { localStorage.setItem("nexus-proxy", val); } catch (e) {}
     toast("Reloading proxy engine...");
-    // Reload page so the new SW takes control
     setTimeout(() => location.reload(), 500);
 });
 
@@ -703,7 +719,7 @@ document.documentElement.setAttribute("data-theme", savedTheme);
 themeSelect.value = savedTheme;
 
 const savedProxy = (() => { try { return localStorage.getItem("nexus-proxy"); } catch (e) { return null; } })() || "scramjet";
-proxySelect.value = savedProxy;
+if (["scramjet", "server", "direct"].includes(savedProxy)) proxySelect.value = savedProxy;
 
 themeSelect.addEventListener("change", () => {
     const val = themeSelect.value;
@@ -1402,36 +1418,52 @@ aiForm.addEventListener("submit", async (e) => {
     aiShowLoading();
 
     try {
-        const res = await fetch("/api/ai/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: "You are Nexus AI, a helpful assistant. Keep answers concise and clear." },
-                    ...aiHistory.slice(-20)
-                ],
-                max_tokens: 1024
-            })
-        });
+        let reply = null;
 
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(err);
+        // Try Chrome built-in AI (Prompt API) — works on Chrome 131+ with no setup
+        if (window.ai && window.ai.languageModel) {
+            try {
+                const session = await window.ai.languageModel.create({
+                    systemPrompt: "You are Nexus AI, a helpful assistant. Keep answers concise and clear."
+                });
+                reply = await session.prompt(text);
+                session.destroy();
+            } catch (e) {
+                console.warn("Chrome AI failed, falling back to server:", e);
+            }
         }
 
-        const data = await res.json();
-        const reply = data.choices[0].message.content;
+        // Fallback: server endpoint
+        if (!reply) {
+            const res = await fetch("/api/ai/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: "You are Nexus AI, a helpful assistant. Keep answers concise and clear." },
+                        ...aiHistory.slice(-20)
+                    ],
+                    max_tokens: 1024
+                })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            reply = data.choices[0]?.message?.content || "";
+        }
+
+        if (!reply) throw new Error("Empty response");
+
         aiRemoveLoading();
         aiAddMsg("assistant", reply);
         aiHistory.push({ role: "assistant", content: reply });
     } catch (err) {
         aiRemoveLoading();
-        aiAddMsg("assistant", "Error: AI unavailable. Install Ollama (ollama.com) for free local AI, or set OPENAI_API_KEY as a server environment variable.");
+        aiAddMsg("assistant", "Error: AI unavailable right now. Try again later.");
     }
 });
 
-/* ── Music Player (postMessage/embed) ── */
+/* ── Music Player (embed + progress timer) ── */
 const musicQueue = [];
 let musicIndex = -1;
 let musicMinimized = true;
@@ -1439,6 +1471,9 @@ let musicHidden = false;
 let shuffleOn = false;
 let repeatOn = false;
 let isPlaying = false;
+let progressTimer = null;
+let musicStartTime = 0;
+let musicElapsed = 0;
 const FALLBACK_THUMB = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%23222'/%3E%3Cpath d='M18 14v20l16-10z' fill='%23888'/%3E%3C/svg%3E";
 window.FALLBACK_THUMB = FALLBACK_THUMB;
 
@@ -1463,9 +1498,43 @@ const shuffleBtn = document.getElementById("music-shuffle");
 const repeatBtn = document.getElementById("music-repeat");
 const volumeBtn = document.getElementById("music-volume-btn");
 const volumeSlider = document.getElementById("music-volume-slider");
+const musicSeek = document.getElementById("music-seek");
+const musicTimeCurrent = document.getElementById("music-time-current");
+const musicTimeTotal = document.getElementById("music-time-total");
+
+function formatTime(t) {
+    if (!t || isNaN(t)) return "0:00";
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+}
 
 function postToYT(msg) {
     try { musicEmbed.contentWindow.postMessage(JSON.stringify(msg), "*"); } catch (e) {}
+}
+
+function updateProgressDisplay() {
+    const track = musicQueue[musicIndex];
+    if (!track) return;
+    if (isPlaying) {
+        musicElapsed = (Date.now() - musicStartTime) / 1000;
+    }
+    const dur = track.durationSec || 0;
+    if (dur > 0) {
+        musicSeek.value = Math.min(100, (musicElapsed / dur) * 100);
+    }
+    musicTimeCurrent.textContent = formatTime(musicElapsed);
+    musicTimeTotal.textContent = formatTime(dur);
+}
+
+function startProgressTimer() {
+    if (progressTimer) clearInterval(progressTimer);
+    musicStartTime = Date.now();
+    progressTimer = setInterval(updateProgressDisplay, 500);
+}
+
+function stopProgressTimer() {
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
 }
 
 /* Listen for YouTube embed events via postMessage */
@@ -1481,23 +1550,26 @@ window.addEventListener("message", (e) => {
         if (data.info === 1) {
             isPlaying = true;
             playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+            startProgressTimer();
         } else if (data.info === 2) {
             isPlaying = false;
             playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            stopProgressTimer();
         } else if (data.info === 0) {
             isPlaying = false;
             playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            stopProgressTimer();
             playNext();
         }
     }
 });
 
-function playSong(videoId, title, author, thumbnail) {
+function playSong(videoId, title, author, thumbnail, durationSec) {
     const existingIdx = musicQueue.findIndex(t => t.id === videoId);
     if (existingIdx >= 0) {
         musicIndex = existingIdx;
     } else {
-        musicQueue.push({ id: videoId, title, author, thumbnail });
+        musicQueue.push({ id: videoId, title, author, thumbnail, durationSec });
         musicIndex = musicQueue.length - 1;
     }
     playCurrent();
@@ -1512,6 +1584,7 @@ function playCurrent() {
     updateThumb(track);
     updateQueueUI();
     isPlaying = true;
+    musicElapsed = 0;
     playPauseBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
     musicEmbed.src = "https://www.youtube.com/embed/" + track.id + "?autoplay=1&controls=0&enablejsapi=1&rel=0&iv_load_policy=3&modestbranding=1";
 }
@@ -1592,8 +1665,10 @@ function renderMusicResults(results) {
         musicResults.innerHTML = "<div style='padding:8px;color:var(--muted);font-size:12px'>No results found</div>";
         return;
     }
-    musicResults.innerHTML = results.map(r => `
-        <div class="music-result-item" data-id="${r.id}" data-title="${escapeHtml(r.title)}" data-author="${escapeHtml(r.author)}" data-thumb="${r.thumbnail}">
+    musicResults.innerHTML = results.map(r => {
+        const parts = (r.duration || "0:00").split(":").map(Number);
+        const durSec = parts.length === 3 ? parts[0]*3600 + parts[1]*60 + parts[2] : parts.length === 2 ? parts[0]*60 + parts[1] : parts[0] || 0;
+        return `<div class="music-result-item" data-id="${r.id}" data-title="${escapeHtml(r.title)}" data-author="${escapeHtml(r.author)}" data-thumb="${r.thumbnail}" data-dur="${durSec}">
             <img src="${r.thumbnail}" alt="" loading="lazy" onerror="this.src=window.FALLBACK_THUMB" />
             <div class="r-info">
                 <div class="r-title">${escapeHtml(r.title)}</div>
@@ -1601,31 +1676,32 @@ function renderMusicResults(results) {
             </div>
             <button class="r-play-btn" title="Play now">▶</button>
             <button class="r-add-btn" title="Add to queue">+</button>
-        </div>
-    `).join("");
+        </div>`;
+    }).join("");
     musicResults.querySelectorAll(".music-result-item").forEach(el => {
         const id = el.dataset.id;
         const title = el.dataset.title;
         const author = el.dataset.author;
         const thumb = el.dataset.thumb;
+        const dur = parseInt(el.dataset.dur) || 0;
         el.querySelector(".r-play-btn").addEventListener("click", (e) => {
             e.stopPropagation();
-            playSong(id, title, author, thumb);
+            playSong(id, title, author, thumb, dur);
             musicSearchInput.value = "";
             musicResults.innerHTML = "";
             musicSearchArea.classList.add("music-hidden");
         });
         el.querySelector(".r-add-btn").addEventListener("click", (e) => {
             e.stopPropagation();
-            queueSong(id, title, author, thumb);
+            queueSong(id, title, author, thumb, dur);
             toast("Added to queue");
         });
     });
 }
 
-function queueSong(videoId, title, author, thumbnail) {
+function queueSong(videoId, title, author, thumbnail, durationSec) {
     if (musicQueue.findIndex(t => t.id === videoId) >= 0) return;
-    musicQueue.push({ id: videoId, title, author, thumbnail });
+    musicQueue.push({ id: videoId, title, author, thumbnail, durationSec });
     if (musicIndex < 0) musicIndex = 0;
     updateQueueUI();
     showPlayer();
@@ -1678,7 +1754,7 @@ function getMusicState() {
         repeat: repeatOn,
         minimized: musicMinimized,
         volume: parseInt(volumeSlider.value),
-        currentTime: 0,
+        currentTime: musicElapsed,
     };
 }
 
@@ -1705,6 +1781,17 @@ repeatBtn.addEventListener("click", () => {
     repeatBtn.classList.toggle("active", repeatOn);
     if (repeatOn) toast("Repeat on");
     else toast("Repeat off");
+});
+
+musicSeek.addEventListener("input", () => {
+    const track = musicQueue[musicIndex];
+    if (!track || !track.durationSec) return;
+    const seekTo = track.durationSec * (parseInt(musicSeek.value) / 100);
+    musicElapsed = seekTo;
+    musicStartTime = Date.now() - musicElapsed * 1000;
+    if (isPlaying && musicEmbed.src !== "about:blank") {
+        postToYT({ event: "command", func: "seekTo", args: [seekTo, true] });
+    }
 });
 
 volumeSlider.addEventListener("input", () => {

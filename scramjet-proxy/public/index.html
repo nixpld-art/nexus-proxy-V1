@@ -8,9 +8,9 @@
     <script src="/scram/scramjet.all.js"></script>
     <script src="/baremux/index.js"></script>
     <link rel="stylesheet" href="index.css" />
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+    <script src="/firebase-sdk/firebase-app-compat.js"></script>
+    <script src="/firebase-sdk/firebase-auth-compat.js"></script>
+    <script src="/firebase-sdk/firebase-database-compat.js"></script>
     <script src="firebase-config.js" defer></script>
     <script src="register-sw.js" defer></script>
     <script src="search.js" defer></script>
@@ -273,9 +273,11 @@
                     </div>
                     <div class="setting-card">
                         <h3>Proxy Engine</h3>
-                        <p class="setting-desc">Switch proxy backend. Reload recommended after changing.</p>
+                        <p class="setting-desc">Switch proxy backend. "Server" works without service workers.</p>
                         <select id="proxy-select">
-                            <option value="scramjet">Scramjet</option>
+                            <option value="scramjet">Scramjet (fast, needs SW)</option>
+                            <option value="server">Server Proxy (no SW needed)</option>
+                            <option value="direct">Direct (no proxy)</option>
                         </select>
                     </div>
                     <div class="setting-card">
