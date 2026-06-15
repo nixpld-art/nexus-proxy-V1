@@ -1997,12 +1997,10 @@ html, body {
 }
 #music-yt-player {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 60px;
-    opacity: 0;
-    pointer-events: none;
+    bottom: 0;
+    right: 0;
+    width: 1px;
+    height: 1px;
 }
 .music-minimized #music-controls,
 .music-minimized #music-queue {
