@@ -24,7 +24,23 @@ function swReadyWithTimeout(ms) {
     });
 }
 
-/* Server-side proxy engine — works without service workers (school Chromebook fix) */
+/* URL helpers */
+function ensureProtocol(url) {
+    url = url.trim();
+    if (!/^https?:\/\//i.test(url)) {
+        url = "https://" + url;
+    }
+    return url;
+}
+
+function isValidUrl(url) {
+    try {
+        const u = new URL(url);
+        return u.protocol === "http:" || u.protocol === "https:";
+    } catch { return false; }
+}
+
+/* Server-side proxy engine — works without service workers */
 const serverProxyEngine = {
     name: "Server Proxy",
     id: "server",
@@ -33,9 +49,13 @@ const serverProxyEngine = {
     createFrame() {
         const iframe = document.createElement("iframe");
         iframe.style.cssText = "width:100%;height:100%;border:none;display:block";
-        return { frame: iframe, go: (u) => { iframe.src = this._proxyBase + encodeURIComponent(u); } };
+        iframe.setAttribute("allow", "autoplay; fullscreen; clipboard-read; clipboard-write");
+        return { frame: iframe, go: (u) => { this.navigate({ frame: iframe }, u); } };
     },
-    encodeUrl(url) { return this._proxyBase + encodeURIComponent(url); },
+    encodeUrl(url) {
+        url = ensureProtocol(url);
+        return this._proxyBase + encodeURIComponent(url);
+    },
     decodeUrl(url) {
         try {
             const prefix = this._proxyBase;
@@ -43,7 +63,19 @@ const serverProxyEngine = {
             return url;
         } catch { return url; }
     },
-    navigate(frame, url) { frame.frame.src = this._proxyBase + encodeURIComponent(url); },
+    navigate(frame, url) {
+        url = ensureProtocol(url);
+        if (!isValidUrl(url)) { console.warn("Invalid URL:", url); return; }
+        frame.frame.src = this._proxyBase + encodeURIComponent(url);
+    },
+    supportsPost: true,
+    proxyPost(url, body) {
+        return fetch(this._proxyBase + encodeURIComponent(url), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+    },
 };
 
 /* Ultimate fallback: raw iframe, no proxy rewriting */
@@ -54,11 +86,12 @@ const directFallbackEngine = {
     createFrame() {
         const iframe = document.createElement("iframe");
         iframe.style.cssText = "width:100%;height:100%;border:none;display:block";
-        return { frame: iframe, go: (u) => { iframe.src = u; } };
+        iframe.setAttribute("allow", "autoplay; fullscreen; clipboard-read; clipboard-write");
+        return { frame: iframe, go: (u) => { this.navigate({ frame: iframe }, u); } };
     },
-    encodeUrl(url) { return url; },
+    encodeUrl(url) { return ensureProtocol(url); },
     decodeUrl(url) { return url; },
-    navigate(frame, url) { frame.frame.src = url; },
+    navigate(frame, url) { frame.frame.src = ensureProtocol(url); },
 };
 
 const ProxyEngines = {
@@ -83,14 +116,28 @@ const ProxyEngines = {
                     await prev.unregister();
             } catch (e) {}
             try { await navigator.serviceWorker.register("./sw.js", { scope: "/" }); } catch (e) { console.warn("SW register failed", e); }
-            const reg = await swReadyWithTimeout(10000);
-            if (!reg) { console.warn("Scramjet SW not ready after timeout, continuing without SW"); }
+            const reg = await swReadyWithTimeout(15000);
+            if (!reg) { console.warn("Scramjet SW not ready, continuing without SW"); }
+
             try {
-                const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
                 const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                if ((await connection.getTransport()) !== "/libcurl/index.mjs")
-                    await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
-            } catch (e) { console.warn("BareMux transport setup failed", e); }
+                const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+
+                // Try Epoxy transport first (Doge Unblocker approach) — more resilient to filtering
+                if ((await connection.getTransport()) !== "/epoxy/index.mjs") {
+                    await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+                }
+            } catch (e) {
+                console.warn("Epoxy transport failed, trying libcurl:", e);
+                try {
+                    const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+                    const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+                    if ((await connection.getTransport()) !== "/libcurl/index.mjs")
+                        await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
+                } catch (e2) {
+                    console.warn("BareMux transport setup failed entirely", e2);
+                }
+            }
         },
         createFrame() { return window.scramjet.createFrame(); },
         encodeUrl(url) { return window.scramjet.encodeUrl(url); },

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nexus</title>
+    <title>Stratus</title>
     <link rel="shortcut icon" href="icon.png" />
     <script src="/scram/scramjet.all.js"></script>
     <script src="/baremux/index.js"></script>
@@ -21,7 +21,7 @@
     <canvas id="bg-canvas"></canvas>
 
     <div id="loading-screen">
-        <div class="loader">Nexus</div>
+        <div class="loader">Stratus</div>
         <p>loading your experience...</p>
     </div>
 
@@ -34,46 +34,40 @@
             </div>
             <div class="modal-patch-body">
                 <div class="patch-entry">
-                    <span class="patch-tag patch-new">New</span>
-                    <strong>Patch Notes Modal</strong>
-                    <span class="patch-date">Jun 14, 2026</span>
-                    <p>This popup shows you what changed since your last visit. You can close it and carry on.</p>
+                    <span class="patch-tag patch-change">Change</span>
+                    <strong>Rebranded to Stratus</strong>
+                    <span class="patch-date">Jun 16, 2026</span>
+                    <p>Nexus Proxy is now Stratus. Same great proxy, fresh new identity.</p>
                 </div>
                 <div class="patch-entry">
                     <span class="patch-tag patch-new">New</span>
-                    <strong>Music Player</strong>
-                    <span class="patch-date">Jun 13, 2026</span>
-                    <p>Search any song on YouTube, play audio, build a queue, shuffle & repeat.</p>
+                    <strong>Fullscreen Tab View</strong>
+                    <span class="patch-date">Jun 16, 2026</span>
+                    <p>Open in New Tab now opens a clean fullscreen page with tab title and favicon spoofing.</p>
                 </div>
                 <div class="patch-entry">
                     <span class="patch-tag patch-fix">Fix</span>
-                    <strong>Frog Toggle Clicks</strong>
-                    <span class="patch-date">Jun 13, 2026</span>
-                    <p>Moved outside the stacking context so clicks register on the first try.</p>
+                    <strong>Music Player Fixed</strong>
+                    <span class="patch-date">Jun 16, 2026</span>
+                    <p>Progress bar and timestamps now update correctly using the YouTube IFrame API.</p>
                 </div>
                 <div class="patch-entry">
                     <span class="patch-tag patch-new">New</span>
-                    <strong>Nexus AI</strong>
-                    <span class="patch-date">Jun 12, 2026</span>
-                    <p>Chat with AI powered by OpenAI or local Ollama — no API key needed on the client.</p>
+                    <strong>AI with Gemini</strong>
+                    <span class="patch-date">Jun 16, 2026</span>
+                    <p>AI now supports Google Gemini (free tier) for reliable out-of-the-box chat.</p>
+                </div>
+                <div class="patch-entry">
+                    <span class="patch-tag patch-fix">Fix</span>
+                    <strong>Proxy URL Routing</strong>
+                    <span class="patch-date">Jun 16, 2026</span>
+                    <p>Fixed malformed URL errors when proxying at school. Improved URL sanitization.</p>
                 </div>
                 <div class="patch-entry">
                     <span class="patch-tag patch-new">New</span>
-                    <strong>Chat Rooms</strong>
-                    <span class="patch-date">Jun 12, 2026</span>
-                    <p>Create and join chat rooms with Firebase realtime database. Messages auto-delete after 90 seconds.</p>
-                </div>
-                <div class="patch-entry">
-                    <span class="patch-tag patch-change">Change</span>
-                    <strong>Scramjet Only</strong>
-                    <span class="patch-date">Jun 11, 2026</span>
-                    <p>Removed UV and Epoxy proxies — only Scramjet remains for better performance.</p>
-                </div>
-                <div class="patch-entry">
-                    <span class="patch-tag patch-change">Change</span>
-                    <strong>DuckDuckGo Default</strong>
-                    <span class="patch-date">Jun 11, 2026</span>
-                    <p>Default search engine changed to DuckDuckGo to avoid Google reCAPTCHA issues.</p>
+                    <strong>Auto Versioning</strong>
+                    <span class="patch-date">Jun 16, 2026</span>
+                    <p>Build version now auto-updates on every deploy. Check the settings panel.</p>
                 </div>
             </div>
             <div class="modal-actions">
@@ -84,8 +78,8 @@
 
     <div id="app">
         <nav id="navbar">
-            <div class="nav-left">
-                <span class="nav-logo">Nexus</span>
+            <div class="nav-brand">
+                <span class="nav-logo">Stratus</span>
             </div>
             <div class="nav-center">
                 <button class="nav-tab active" data-view="home">Home</button>
@@ -96,6 +90,7 @@
                 <button class="nav-tab" data-view="account">Account</button>
             </div>
             <div class="nav-right">
+                <span class="version-badge" id="versionBadge">v--</span>
                 <span class="online-badge">&#9679; online</span>
             </div>
         </nav>
@@ -103,7 +98,7 @@
         <div id="content">
             <div id="home-view" class="view active">
                 <div class="home-header">
-                    <h1>Nexus</h1>
+                    <h1>Stratus</h1>
                     <p>pick an app to get started</p>
                 </div>
                 <div class="quick-apps">
@@ -222,16 +217,16 @@
             <div id="ai-view" class="view">
                 <div class="ai-layout">
                     <div class="ai-header">
-                        <h2>Nexus AI</h2>
-                        <p>Powered by ChatGPT</p>
+                        <h2>Stratus AI</h2>
+                        <p>Powered by AI</p>
                     </div>
                     <div class="ai-conversation" id="aiConversation">
                         <div class="ai-msg ai-welcome">
-                            <div class="ai-msg-content">Hello! I'm Nexus AI. Ask me anything.</div>
+                            <div class="ai-msg-content">Hello! I'm Stratus AI. Ask me anything.</div>
                         </div>
                     </div>
                     <form id="aiForm" class="ai-form">
-                        <input id="aiInput" type="text" placeholder="Ask Nexus AI anything..." autocomplete="off" />
+                        <input id="aiInput" type="text" placeholder="Ask Stratus AI anything..." autocomplete="off" />
                         <button type="submit">Send</button>
                     </form>
                 </div>
@@ -245,7 +240,7 @@
                     <div class="setting-card">
                         <h3>Theme</h3>
                         <select id="theme-select">
-                            <option value="nexus">Nexus (Teal)</option>
+                            <option value="nexus">Stratus (Teal)</option>
                             <option value="midnight">Midnight (Purple)</option>
                             <option value="inferno">Inferno (Red)</option>
                             <option value="forest">Forest (Green)</option>
@@ -298,6 +293,11 @@
                         <p class="setting-desc">Delete all saved rooms and messages</p>
                         <button id="clearAllRoomsBtn" class="danger-btn">Delete all rooms and messages</button>
                     </div>
+                    <div class="setting-card">
+                        <h3>About Stratus</h3>
+                        <p class="setting-desc">Version <span id="aboutVersion">--</span></p>
+                        <p class="setting-desc">Build <span id="aboutBuild">--</span></p>
+                    </div>
                 </div>
             </div>
 
@@ -347,7 +347,7 @@
         </svg>
     </button>
 
-    <!-- Global Frogie's Popup Bar -->
+    <!-- Global Frog Bar -->
     <div id="frog-bar">
         <div id="frog-bar-inner">
             <div id="frog-controls">
@@ -376,7 +376,7 @@
                     <button id="frog-home" class="frog-btn" title="Home">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </button>
-                    <button id="frog-popout" class="frog-btn" title="Open in about:blank">
+                    <button id="frog-popout" class="frog-btn" title="Open in new tab (fullscreen)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                     </button>
                     <button id="frog-music-btn" class="frog-btn" title="Toggle music player">
@@ -420,7 +420,7 @@
                 <div id="music-results"></div>
             </div>
             <div id="music-player-area">
-                <iframe id="music-embed" src="about:blank" allow="autoplay; encrypted-media" style="width:1px;height:1px;border:none;position:absolute;bottom:0;right:0"></iframe>
+                <div id="music-youtube-player"></div>
                 <div id="music-controls">
                     <div id="music-controls-row">
                         <button id="music-prev" title="Previous">

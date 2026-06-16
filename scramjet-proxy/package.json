@@ -1,7 +1,7 @@
 {
-	"name": "scramjet-demo",
-	"version": "2.0.0",
-	"description": "The demo application for Scramjet, a high-performance web proxy.",
+	"name": "stratus-proxy",
+	"version": "1.0.0",
+	"description": "Stratus Proxy - A high-performance web proxy built on Scramjet.",
 	"type": "module",
 	"engines": {
 		"npm": ">=7.0.0",

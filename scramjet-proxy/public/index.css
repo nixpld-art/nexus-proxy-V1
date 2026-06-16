@@ -137,67 +137,98 @@ html, body {
 
 #navbar {
     position: fixed;
-    top: 6.5px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 5px 14px;
+    gap: 18px;
+    padding: 6px 18px;
     width: fit-content;
     max-width: 94vw;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    background-color: rgba(29, 29, 29, 0.7);
-    border-radius: 20px;
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    background: rgba(12, 12, 20, 0.65);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 16px;
     z-index: 9999;
     flex-shrink: 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding-right: 10px;
+    border-right: 1px solid rgba(255,255,255,0.05);
 }
 
 .nav-logo {
-    font-size: 15px;
-    font-weight: 800;
-    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
     flex-shrink: 0;
 }
 
 .nav-center {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
     flex-wrap: wrap;
     justify-content: center;
 }
 
 .nav-tab {
-    padding: 5px 12px;
+    padding: 5px 11px;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     background: transparent;
-    color: #8892a0;
+    color: rgba(255,255,255,0.4);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.15s;
+    transition: all 0.18s ease;
+    letter-spacing: 0.1px;
 }
 
 .nav-tab:hover {
-    color: #fff;
-    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
 }
 
 .nav-tab.active {
-    color: #fff;
-    background: #00ff9d;
     color: #000;
+    background: var(--accent);
+    font-weight: 600;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.version-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.3);
+    font-weight: 500;
+    font-family: monospace;
+    letter-spacing: -0.2px;
+    flex-shrink: 0;
 }
 
 .online-badge {
     font-size: 10px;
-    color: #8892a0;
-    font-weight: 600;
+    color: rgba(255,255,255,0.25);
+    font-weight: 500;
     flex-shrink: 0;
 }
 
@@ -2267,10 +2298,11 @@ html, body {
 }
 
 @media (max-width: 700px) {
-    #navbar { padding: 4px 8px; gap: 6px; }
-    .nav-tab { padding: 4px 8px; font-size: 11px; }
+    #navbar { padding: 5px 12px; gap: 10px; }
+    .nav-tab { padding: 4px 9px; font-size: 11px; }
     .nav-logo { font-size: 13px; }
-    .online-badge { font-size: 10px; }
+    .nav-brand { padding-right: 8px; }
+    .version-badge { display: none; }
 }
 
 @media (max-width: 480px) {
@@ -2281,8 +2313,9 @@ html, body {
         font-size: 12px;
     }
     #music-player.music-minimized { width: 150px; }
-    #navbar { padding: 3px 6px; gap: 4px; }
-    .nav-tab { padding: 3px 6px; font-size: 10px; }
+    #navbar { padding: 4px 8px; gap: 6px; }
+    .nav-tab { padding: 3px 7px; font-size: 10px; }
     .nav-logo { display: none; }
+    .nav-brand { border: none; padding: 0; }
     .online-badge { display: none; }
 }
