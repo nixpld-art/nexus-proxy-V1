@@ -22,10 +22,13 @@ function stripHeaders(response) {
 
 async function handleRequest(event) {
 	const url = new URL(event.request.url);
-	// YouTube media/subresources go direct
-	if (url.hostname.endsWith("ytimg.com") || url.hostname.endsWith("googlevideo.com") || url.hostname.endsWith("ggpht.com")) {
+
+	// Game CDNs and media — bypass proxy
+	const directHosts = ["ytimg.com", "googlevideo.com", "ggpht.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "g.glance-cdn.com", "html5.gamedistribution.com", "static.cloudflareinsights.com", "imasdk.googleapis.com", "s0.2mdn.net", "pagead2.googlesyndication.com", "ajax.googleapis.com", "www.gstatic.com", "s3.amazonaws.com", "h5.ant.games"];
+	if (directHosts.some(h => url.hostname === h || url.hostname.endsWith("." + h))) {
 		return fetch(event.request);
 	}
+
 	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
 		const response = await scramjet.fetch(event);

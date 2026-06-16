@@ -5,10 +5,10 @@ let activeProxy = null;
 let proxyInitPromise = null;
 
 async function initProxy() {
-    let preferred = "scramjet";
-    try { preferred = localStorage.getItem("nexus-proxy") || "scramjet"; } catch (e) {}
+    let preferred = "server";
+    try { preferred = localStorage.getItem("nexus-proxy") || "server"; } catch (e) {}
     const engineMap = { scramjet: ProxyEngines.scramjet, server: serverProxyEngine, direct: directFallbackEngine };
-    const engineOrder = [engineMap[preferred], ProxyEngines.scramjet, serverProxyEngine, directFallbackEngine];
+    const engineOrder = [engineMap[preferred], serverProxyEngine, directFallbackEngine];
 
     for (const engine of new Set(engineOrder)) {
         if (!engine) continue;
@@ -718,8 +718,8 @@ const savedTheme = (() => { try { return localStorage.getItem("nexus-theme"); } 
 document.documentElement.setAttribute("data-theme", savedTheme);
 themeSelect.value = savedTheme;
 
-const savedProxy = (() => { try { return localStorage.getItem("nexus-proxy"); } catch (e) { return null; } })() || "scramjet";
-if (["scramjet", "server", "direct"].includes(savedProxy)) proxySelect.value = savedProxy;
+const savedProxy = (() => { try { return localStorage.getItem("nexus-proxy"); } catch (e) { return null; } })() || "server";
+proxySelect.value = ["scramjet", "server", "direct"].includes(savedProxy) ? savedProxy : "server";
 
 themeSelect.addEventListener("change", () => {
     const val = themeSelect.value;
