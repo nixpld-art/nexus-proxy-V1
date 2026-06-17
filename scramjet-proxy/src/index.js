@@ -16,7 +16,7 @@ import ytSearch from "yt-search";
 const publicPath = fileURLToPath(new URL("../public/", import.meta.url));
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
 const BUILD_SEED = Date.now().toString(36).toUpperCase();
-const VERSION = `${pkg.version}-b${BUILD_SEED}`;
+const VERSION = pkg.version;
 
 /* ── AI backends ── */
 const AI_KEY = process.env.OPENAI_API_KEY || "";
@@ -112,16 +112,13 @@ function clientScript(proxyBase, targetOrigin) {
 <script>
 (function(){
 var PB = ${JSON.stringify(proxyBase)};
-var TO = ${JSON.stringify(targetOrigin)};
-var pbLen = PB.length;
 function p(url){ return PB + encodeURIComponent(url); }
-function isProxied(url){ return typeof url==='string' && url.substring(0,pbLen)===PB; }
 function abs(url){ try{ return new URL(url,document.baseURI).href; }catch(e){ return url; } }
 function needsProxy(url){
   if(!url||typeof url!=='string') return false;
-  if(url.substring(0,5)==='data:'||url.substring(0,11)==='javascript:') return false;
+  if(url.indexOf('data:')===0||url.indexOf('javascript:')===0) return false;
   var full = abs(url);
-  if(full.substring(0,pbLen)===PB) return false;
+  if(full.indexOf(PB)===0) return false;
   try{
     var u=new URL(full);
     if(u.origin===location.origin) return false;
@@ -130,28 +127,24 @@ function needsProxy(url){
   return true;
 }
 
-// Intercept fetch()
+// ── fetch() interceptor (preserves method/body/headers) ──
 var nativeFetch = window.fetch;
 window.fetch = function(input, init){
   var req = (input instanceof Request) ? input : new Request(input, init);
-  var url = req.url;
-  if(needsProxy(url)){
-    var newUrl = p(url);
-    return nativeFetch.call(window, newUrl, init);
-  }
-  return nativeFetch.call(window, req);
+  if(!req.url||!needsProxy(req.url)) return nativeFetch.call(window, req);
+  var newReq = new Request(p(req.url), req);
+  return nativeFetch.call(window, newReq);
 };
 
-// Intercept XMLHttpRequest
+// ── XMLHttpRequest interceptor ──
 var XHR = window.XMLHttpRequest;
-var OrigOpen = XHR.prototype.open;
+var _open = XHR.prototype.open;
 XHR.prototype.open = function(method, url){
-  this._proxyUrl = url;
-  if(needsProxy(url)) arguments[1] = p(url);
-  return OrigOpen.apply(this, arguments);
+  if(needsProxy(url)) url = p(url);
+  return _open.call(this, method, url);
 };
 
-// Intercept link clicks (catch dynamically added links)
+// ── Link click interceptor ──
 document.addEventListener('click', function(e){
   var a = e.target.closest('a');
   if(a && a.href && needsProxy(a.href) && !a.hasAttribute('download') && !e.ctrlKey&&!e.metaKey){
@@ -162,73 +155,63 @@ document.addEventListener('click', function(e){
 
 // ── Tab title + favicon spoofing ──
 try{
-  var prefix = '/api/proxy/';
-  var pathPart = location.pathname;
-  if(pathPart.indexOf(prefix)===0){
-    var originUrl = decodeURIComponent(pathPart.substring(prefix.length));
+  var PREFIX = '/api/proxy/';
+  if(location.pathname.indexOf(PREFIX)===0){
+    var originUrl = decodeURIComponent(location.pathname.substring(PREFIX.length));
     var originHost = new URL(originUrl).hostname;
     var pageTitle = document.title || originHost;
     var faviconUrl = 'https://www.google.com/s2/favicons?domain='+encodeURIComponent(originHost)+'&sz=64';
     var link = document.querySelector('link[rel="shortcut icon"],link[rel="icon"]');
     if(!link){ link=document.createElement('link'); link.rel='shortcut icon'; document.head.appendChild(link); }
-    // Use actual site favicon if available in page
+    // Use actual site favicon if available
     var icons = document.querySelectorAll('link[rel*="icon"]');
     for(var i=0;i<icons.length;i++){
       var h = icons[i].href;
-      if(h && h.indexOf('//')>0 && h.indexOf(TO)<0){ faviconUrl=h; break; }
+      if(h && h.indexOf('//')>0 && h.indexOf(PB)<0){ faviconUrl=h; break; }
     }
     link.href = faviconUrl;
     document.title = pageTitle;
-    // Keep spoofed (SPAs override title/favicon)
     setInterval(function(){ document.title=pageTitle; link.href=faviconUrl; }, 1500);
   }
-}catch(e){};
+}catch(e){}
 
-// Intercept history.pushState/replaceState for SPA routing
-var origPushState = history.pushState;
-var origReplaceState = history.replaceState;
-history.pushState = function(){ return origPushState.apply(this,arguments); };
-history.replaceState = function(){ return origReplaceState.apply(this,arguments); };
-
-// Intercept window.open
-var origOpen = window.open;
+// ── window.open interceptor ──
+var _open2 = window.open;
 window.open = function(url){
-  if(url && needsProxy(url)) arguments[0] = p(url);
-  return origOpen.apply(window, arguments);
+  if(url && needsProxy(url)) return _open2.call(window, p(url));
+  return _open2.apply(window, arguments);
 };
 
-// Intercept postMessage target origin for YouTube iframe embeds
-var origPM = window.postMessage;
-window.postMessage = function(message, targetOrigin){
-  if(targetOrigin && targetOrigin!=='*' && targetOrigin!=='/' && needsProxy(targetOrigin)){
-    arguments[1] = '*';
-  }
-  return origPM.apply(this, arguments);
+// ── postMessage interceptor (for YouTube iframe embeds) ──
+var _pm = window.postMessage;
+window.postMessage = function(msg, target){
+  if(target && target!=='*' && target!=='/' && needsProxy(target)) target = '*';
+  return _pm.call(this, msg, target);
 };
 
-// Rewrite element src/href set dynamically via JS
-var observer = new MutationObserver(function(mutations){
-  mutations.forEach(function(m){
-    if(m.type!=='attributes') return;
-    var el = m.target;
-    if(!el) return;
-    var attr = m.attributeName;
+// ── MutationObserver: proxy src/href set dynamically ──
+var observer = new MutationObserver(function(muts){
+  for(var i=0;i<muts.length;i++){
+    var m=muts[i];
+    if(m.type!=='attributes') continue;
+    var el=m.target, attr=m.attributeName;
     if(attr==='src'||attr==='href'||attr==='action'||attr==='data'){
-      var val = el.getAttribute(attr);
+      var val=el.getAttribute(attr);
       if(val && needsProxy(val)) el.setAttribute(attr, p(val));
     }
-  });
+  }
 });
-observer.observe(document.documentElement, {attributes:true, subtree:true, attributeFilter:['src','href','action','data']});
+observer.observe(document.documentElement, {attributes:true,subtree:true,attributeFilter:['src','href','action','data']});
 
-// Auto-proxy any existing elements with external URLs
+// ── Auto-proxy existing elements with external URLs ──
 document.addEventListener('DOMContentLoaded', function(){
-  document.querySelectorAll('[src],[href],[action],[data]').forEach(function(el){
+  var els = document.querySelectorAll('[src],[href],[action],[data]');
+  for(var i=0;i<els.length;i++){
     ['src','href','action','data'].forEach(function(attr){
-      var val = el.getAttribute(attr);
-      if(val && needsProxy(val)) el.setAttribute(attr, p(val));
+      var val = els[i].getAttribute(attr);
+      if(val && needsProxy(val)) els[i].setAttribute(attr, p(val));
     });
-  });
+  }
 });
 })();
 <\/script>`;
