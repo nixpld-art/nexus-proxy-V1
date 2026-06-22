@@ -98,8 +98,8 @@ async function proxyFetch(url, overrideAccept) {
 
 function proxyBaseFromReq(req) {
     const host = req.headers.host || (req.hostname || "localhost") + ":" + (req.socket?.localPort || 8080);
-    const forwardedProto = req.headers["x-forwarded-proto"];
-    const protocol = forwardedProto || (req.socket?.encrypted ? "https" : "http");
+    const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("0.0.0.0");
+    const protocol = isLocal ? "http" : "https";
     return protocol + "://" + host + "/api/proxy/";
 }
 
