@@ -289,6 +289,11 @@ function rewriteProxiedHtml(html, targetUrl, proxyBase) {
         (match, before, attr, q, url, q2) => before + attr + "=" + q + proxyUrl(url) + q2
     );
 
+    html = html.replace(
+        /(<(?:a|img|script|link|iframe|source|video|audio|form)\s[^>]*?)(href|src|action)=("|')(\/\/[^"']+)("|')/gi,
+        (match, before, attr, q, url, q2) => before + attr + "=" + q + proxyUrl("https:" + url) + q2
+    );
+
     html = html.replace(/url\(("|')((?:[^"']+))("|')\)/gi, (m, q1, url, q2) => {
         if (url.startsWith("data:") || url.startsWith("#")) return m;
         return "url(" + q1 + proxyUrl(url) + q2 + ")";
@@ -400,13 +405,21 @@ fastify.get("/api/proxy/*", async (req, reply) => {
 
         if (contentType.includes("text/css")) {
             let css = await res.text();
+            const cssProxyUrl = (url) => {
+                try { return proxyBase + encodeURIComponent(new URL(url, targetUrl).href); } catch { return url; }
+            };
             css = css.replace(/url\(("|')((?:[^"']+))("|')\)/gi, (m, q1, url, q2) => {
                 if (url.startsWith("data:") || url.startsWith("#")) return m;
-                try { return "url(" + q1 + proxyBase + encodeURIComponent(new URL(url, targetUrl).href) + q2 + ")"; } catch { return m; }
+                return "url(" + q1 + cssProxyUrl(url) + q2 + ")";
             });
-            css = css.replace(/@import\s+["']([^"']+)["']/g, (m, url) => {
-                if (url.startsWith("data:") || url.startsWith("#") || url.startsWith("http")) return m;
-                try { return '@import "' + proxyBase + encodeURIComponent(new URL(url, targetUrl).href) + '"'; } catch { return m; }
+            css = css.replace(/url\(([^"'(][^"'\s)]*)\)/gi, (m, url) => {
+                if (url.startsWith("data:") || url.startsWith("#")) return m;
+                return "url(" + cssProxyUrl(url) + ")";
+            });
+            css = css.replace(/@import\s+(?:url\(["']?([^"')]+)["']?\)|["']([^"']+)["'])/g, (m, url1, url2) => {
+                const url = url1 || url2;
+                if (url.startsWith("data:") || url.startsWith("#")) return m;
+                return '@import "' + cssProxyUrl(url) + '"';
             });
             return reply.code(status).type(contentType).send(css);
         }
@@ -501,6 +514,65 @@ fastify.get("/api/music/search", async (req, reply) => {
         }));
         return reply.send({ results: videos });
     } catch (err) { return reply.code(500).send({ error: err.message }); }
+});
+
+/* ── Scramjet URL fallback (for when SW misses a /scramjet/ request) ── */
+fastify.get("/scramjet/*", async (req, reply) => {
+    try {
+        const encoded = req.params["*"];
+        if (!encoded) return reply.code(400).send({ error: "Missing URL" });
+        const rawUrl = decodeURIComponent(encoded);
+        const targetUrl = sanitizeUrl(rawUrl);
+        if (!targetUrl) return reply.code(400).send({ error: "Invalid URL" });
+        const proxyBase = proxyBaseFromReq(req);
+        const res = await proxyFetch(targetUrl);
+        const contentType = res.headers.get("content-type") || "";
+        const status = res.status;
+
+        if (contentType.includes("text/html")) {
+            let html = await res.text();
+            html = rewriteProxiedHtml(html, targetUrl, proxyBase);
+            return reply.code(status).type(contentType).send(html);
+        }
+
+        if (contentType.includes("text/css")) {
+            let css = await res.text();
+            const cssProxyUrl = (url) => {
+                try { return proxyBase + encodeURIComponent(new URL(url, targetUrl).href); } catch { return url; }
+            };
+            css = css.replace(/url\(("|')((?:[^"']+))("|')\)/gi, (m, q1, url, q2) => {
+                if (url.startsWith("data:") || url.startsWith("#")) return m;
+                return "url(" + q1 + cssProxyUrl(url) + q2 + ")";
+            });
+            css = css.replace(/url\(([^"'(][^"'\s)]*)\)/gi, (m, url) => {
+                if (url.startsWith("data:") || url.startsWith("#")) return m;
+                return "url(" + cssProxyUrl(url) + ")";
+            });
+            css = css.replace(/@import\s+(?:url\(["']?([^"')]+)["']?\)|["']([^"']+)["'])/g, (m, url1, url2) => {
+                const url = url1 || url2;
+                if (url.startsWith("data:") || url.startsWith("#")) return m;
+                return '@import "' + cssProxyUrl(url) + '"';
+            });
+            return reply.code(status).type(contentType).send(css);
+        }
+
+        if (contentType.includes("javascript") || contentType.includes("ecmascript")) {
+            let js = await res.text();
+            js = rewriteJs(js, targetUrl, proxyBase);
+            return reply.code(status).type(contentType).send(js);
+        }
+
+        const buffer = await res.arrayBuffer();
+        const passHeaders = {};
+        const passThrough = ["content-type", "content-length", "cache-control", "etag", "last-modified", "accept-ranges", "content-range"];
+        for (const h of passThrough) {
+            const v = res.headers.get(h);
+            if (v) passHeaders[h] = v;
+        }
+        return reply.code(status).headers(passHeaders).send(Buffer.from(buffer));
+    } catch (err) {
+        return reply.code(502).send({ error: "Scramjet fallback failed: " + err.message });
+    }
 });
 
 fastify.setNotFoundHandler((res, reply) => {

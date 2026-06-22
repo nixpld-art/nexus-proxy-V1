@@ -26,7 +26,28 @@ function stripHeaders(response) {
 }
 
 function isScramjetErrorPage(text) {
-    return text.includes("<title>Scramjet</title>") || text.includes("errorTrace") || text.includes("Scramjet | Error");
+    if (!text || typeof text !== "string") return false;
+    return text.includes("<title>Scramjet</title>") ||
+        text.includes("Scramjet | Error") ||
+        text.includes("could not route your request") ||
+        text.includes("errorTrace") ||
+        text.includes("Credits Scramjet");
+}
+
+function ensureContentType(response, text) {
+    const ct = response.headers.get("content-type") || "";
+    if (!ct || ct === "text/plain" || ct === "application/octet-stream") {
+        if (text.trimStart().startsWith("<!") || text.trimStart().startsWith("<html")) {
+            const headers = new Headers(response.headers);
+            headers.set("content-type", "text/html; charset=utf-8");
+            return new Response(text, {
+                status: response.status,
+                statusText: response.statusText,
+                headers,
+            });
+        }
+    }
+    return null;
 }
 
 const directHosts = [
@@ -75,41 +96,49 @@ async function handleRequest(event) {
                 if (!scramjet) return proxyFallback();
                 try {
                     await scramjet.loadConfig();
-                } catch { /* config may already be loaded */ }
+                } catch { }
                 let canRoute = false;
                 try {
                     canRoute = scramjet.route(event);
-                } catch { /* route check failed */ }
+                } catch { }
                 if (canRoute) {
                     try {
                         const response = await scramjet.fetch(event);
                         const ct = response.headers.get("content-type") || "";
-                        if (!ct || ct.includes("text/html") || ct.includes("application/json")) {
-                            const text = await response.text();
-                            if (isScramjetErrorPage(text)) {
-                                return proxyFallback();
-                            }
-                            if (ct.includes("text/html")) {
-                                if (event.request.url.includes("youtube.com")) {
-                                    const patched = text.replace(
-                                        '</head>',
-                                        '<script>let i=setInterval(function(){var b=document.querySelector(\'[aria-label="Accept all"], [aria-label="Accept all"]\');if(b){b.click();clearInterval(i)}},200);setTimeout(function(){clearInterval(i)},8000);<\/script></head>'
-                                    );
-                                    return stripHeaders(new Response(patched, {
-                                        status: response.status,
-                                        statusText: response.statusText,
-                                        headers: response.headers,
-                                    }));
-                                }
-                                return stripHeaders(new Response(text, {
+
+                        const text = await response.text();
+
+                        if (isScramjetErrorPage(text)) {
+                            return proxyFallback();
+                        }
+
+                        const fixed = ensureContentType(response, text);
+                        if (fixed) return stripHeaders(fixed);
+
+                        if (ct.includes("text/html")) {
+                            if (event.request.url.includes("youtube.com")) {
+                                const patched = text.replace(
+                                    '</head>',
+                                    '<script>let i=setInterval(function(){var b=document.querySelector(\'[aria-label="Accept all"], [aria-label="Accept all"]\');if(b){b.click();clearInterval(i)}},200);setTimeout(function(){clearInterval(i)},8000);<\/script></head>'
+                                );
+                                return stripHeaders(new Response(patched, {
                                     status: response.status,
                                     statusText: response.statusText,
                                     headers: response.headers,
                                 }));
                             }
+                            return stripHeaders(new Response(text, {
+                                status: response.status,
+                                statusText: response.statusText,
+                                headers: response.headers,
+                            }));
                         }
-                        if (!response.ok) return proxyFallback();
-                        return stripHeaders(response);
+
+                        return stripHeaders(new Response(text, {
+                            status: response.status,
+                            statusText: response.statusText,
+                            headers: response.headers,
+                        }));
                     } catch (e) {
                         return proxyFallback();
                     }
