@@ -98,7 +98,8 @@ async function proxyFetch(url, overrideAccept) {
 
 function proxyBaseFromReq(req) {
     const host = req.headers.host || (req.hostname || "localhost") + ":" + (req.socket?.localPort || 8080);
-    const protocol = req.protocol || (req.socket?.encrypted ? "https" : "http");
+    const forwardedProto = req.headers["x-forwarded-proto"];
+    const protocol = forwardedProto || (req.socket?.encrypted ? "https" : "http");
     return protocol + "://" + host + "/api/proxy/";
 }
 
@@ -361,6 +362,7 @@ Object.assign(wisp.options, {
 });
 
 const fastify = Fastify({
+    trustProxy: true,
     serverFactory: (handler) => {
         return createServer()
             .on("request", (req, res) => { handler(req, res); })
