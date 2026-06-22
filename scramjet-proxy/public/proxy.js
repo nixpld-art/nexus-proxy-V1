@@ -24,7 +24,6 @@ function swReadyWithTimeout(ms) {
     });
 }
 
-/* URL helpers */
 function ensureProtocol(url) {
     url = url.trim();
     if (!/^https?:\/\//i.test(url)) {
@@ -40,7 +39,6 @@ function isValidUrl(url) {
     } catch { return false; }
 }
 
-/* Server-side proxy engine — works without service workers */
 const serverProxyEngine = {
     name: "Server Proxy",
     id: "server",
@@ -78,7 +76,6 @@ const serverProxyEngine = {
     },
 };
 
-/* Ultimate fallback: raw iframe, no proxy rewriting */
 const directFallbackEngine = {
     name: "Direct",
     id: "direct",
@@ -94,10 +91,54 @@ const directFallbackEngine = {
     navigate(frame, url) { frame.frame.src = ensureProtocol(url); },
 };
 
+async function setupBareMuxTransport() {
+    const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+    const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+
+    try {
+        const current = await connection.getTransport();
+        if (current === "/epoxy-wrapper.mjs") return true;
+    } catch { /* no transport yet */ }
+
+    try {
+        await connection.setTransport("/epoxy-wrapper.mjs", [{ wisp: wispUrl }]);
+        const verify = await connection.getTransport();
+        return verify === "/epoxy-wrapper.mjs";
+    } catch (e) {
+        console.warn("Epoxy transport failed:", e);
+    }
+
+    try {
+        await connection.setTransport("/libcurl/index.mjs", [{ wisp: wispUrl }]);
+        const verify = await connection.getTransport();
+        return verify === "/libcurl/index.mjs";
+    } catch (e) {
+        console.warn("Libcurl transport also failed:", e);
+    }
+
+    return false;
+}
+
+async function forceSWUpdate() {
+    try {
+        const prev = await navigator.serviceWorker.getRegistration("/");
+        if (prev) await prev.unregister();
+    } catch { /* ignore */ }
+    try {
+        await navigator.serviceWorker.register("./sw.js", { scope: "/", updateViaCache: "none" });
+    } catch (e) {
+        console.warn("SW register failed", e);
+        return false;
+    }
+    const reg = await swReadyWithTimeout(10000);
+    return !!reg;
+}
+
 const ProxyEngines = {
     scramjet: {
         name: "Scramjet",
         id: "scramjet",
+        _transportReady: false,
         async init() {
             if (!window.scramjet) {
                 const { ScramjetController } = $scramjetLoadController();
@@ -110,33 +151,15 @@ const ProxyEngines = {
                 });
                 await window.scramjet.init();
             }
-            try {
-                const prev = await navigator.serviceWorker.getRegistration("/");
-                if (prev && prev.active && prev.active.scriptURL !== location.origin + "/sw.js")
-                    await prev.unregister();
-            } catch (e) {}
-            try { await navigator.serviceWorker.register("./sw.js", { scope: "/" }); } catch (e) { console.warn("SW register failed", e); }
-            const reg = await swReadyWithTimeout(15000);
-            if (!reg) { console.warn("Scramjet SW not ready, continuing without SW"); }
 
-            try {
-                const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+            const swOk = await forceSWUpdate();
+            if (!swOk) {
+                throw new Error("SW registration failed");
+            }
 
-                // Try Epoxy transport first (Doge Unblocker approach) — more resilient to filtering
-                if ((await connection.getTransport()) !== "/epoxy/index.mjs") {
-                    await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-                }
-            } catch (e) {
-                console.warn("Epoxy transport failed, trying libcurl:", e);
-                try {
-                    const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                    const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-                    if ((await connection.getTransport()) !== "/libcurl/index.mjs")
-                        await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
-                } catch (e2) {
-                    console.warn("BareMux transport setup failed entirely", e2);
-                }
+            const transportOk = await setupBareMuxTransport();
+            if (!transportOk) {
+                throw new Error("No BareMux transport available");
             }
         },
         createFrame() { return window.scramjet.createFrame(); },

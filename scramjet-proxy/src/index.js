@@ -153,6 +153,65 @@ document.addEventListener('click', function(e){
   }
 }, true);
 
+// ── window.location setter interception ──
+(function(){
+  var _loc = window.location;
+  try {
+    var _locProto = Object.getPrototypeOf ? Object.getPrototypeOf(_loc) : Location.prototype;
+    var _hrefDesc = Object.getOwnPropertyDescriptor(_locProto, 'href');
+    if (_hrefDesc && _hrefDesc.set) {
+      var _origSetHref = _hrefDesc.set;
+      Object.defineProperty(window, 'location', {
+        get: function() { return _loc; },
+        set: function(url) {
+          if (typeof url === 'string' && needsProxy(url)) { _origSetHref.call(_loc, p(url)); }
+          else { _origSetHref.call(_loc, url); }
+        },
+        configurable: true
+      });
+    }
+  } catch(e) {}
+})();
+
+// ── history.pushState/replaceState interceptor (for SPAs) ──
+try {
+  var _pushState = history.pushState;
+  var _replaceState = history.replaceState;
+  history.pushState = function(data, unused, url) {
+    if (url && needsProxy(url)) url = p(url);
+    return _pushState.call(this, data, unused, url);
+  };
+  history.replaceState = function(data, unused, url) {
+    if (url && needsProxy(url)) url = p(url);
+    return _replaceState.call(this, data, unused, url);
+  };
+} catch(e){}
+
+// ── Form submit interceptor ──
+try {
+  var _formSubmit = HTMLFormElement.prototype.submit;
+  HTMLFormElement.prototype.submit = function() {
+    var action = this.getAttribute('action') || this.action;
+    if (action && needsProxy(action)) { this.action = p(action); }
+    return _formSubmit.call(this);
+  };
+  document.addEventListener('submit', function(e){
+    var form = e.target;
+    if (form && form.action && needsProxy(form.action)) {
+      e.preventDefault();
+      var action = p(form.action);
+      var method = (form.method || 'GET').toUpperCase();
+      if (method === 'GET') { location.href = action; }
+      else {
+        var fd = new FormData(form);
+        var params = new URLSearchParams();
+        for (var pair of fd.entries()) params.append(pair[0], pair[1]);
+        fetch(action, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).then(function(r){ location.href = action; });
+      }
+    }
+  }, true);
+} catch(e){}
+
 // ── Tab title + favicon spoofing ──
 try{
   var PREFIX = '/api/proxy/';
@@ -344,6 +403,10 @@ fastify.get("/api/proxy/*", async (req, reply) => {
             css = css.replace(/url\(("|')((?:[^"']+))("|')\)/gi, (m, q1, url, q2) => {
                 if (url.startsWith("data:") || url.startsWith("#")) return m;
                 try { return "url(" + q1 + proxyBase + encodeURIComponent(new URL(url, targetUrl).href) + q2 + ")"; } catch { return m; }
+            });
+            css = css.replace(/@import\s+["']([^"']+)["']/g, (m, url) => {
+                if (url.startsWith("data:") || url.startsWith("#") || url.startsWith("http")) return m;
+                try { return '@import "' + proxyBase + encodeURIComponent(new URL(url, targetUrl).href) + '"'; } catch { return m; }
             });
             return reply.code(status).type(contentType).send(css);
         }
