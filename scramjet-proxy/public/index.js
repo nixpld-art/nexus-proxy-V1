@@ -539,7 +539,7 @@ const cloakMap = {
     classroom: { title: "Classroom", icon: "https://ssl.gstatic.com/classroom/favicon.png" },
     drive: { title: "Google Drive", icon: "https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" },
 };
-const defaultCloak = { title: "Stratus", icon: "icon.png" };
+const defaultCloak = { title: "Stratus", icon: "/favicon.ico" };
 
 function applyCloak(val) {
     const c = val ? cloakMap[val] : defaultCloak;
@@ -1068,9 +1068,8 @@ function gameFallback(name) {
     const dark = "hsl(" + hue + ",40%,25%)";
     const mid = "hsl(" + hue + ",45%,38%)";
     const light = "hsl(" + h2 + ",50%,50%)";
-    const accent2 = "hsl(" + h3 + ",35%,30%)";
-    const pattern = "M0 " + (ah % 30 + 10) + "L" + (ah % 15 + 5) + " 0L" + (ah % 25 + 15) + " " + (ah % 35 + 10) + "L" + (ah % 10 + 5) + " " + (ah % 20 + 15) + "Z";
-    return "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='gg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='" + dark + "'/><stop offset='50%' stop-color='" + mid + "'/><stop offset='100%' stop-color='" + light + "'/></linearGradient><radialGradient id='ggr' cx='30%' cy='30%' r='70%'><stop offset='0%' stop-color='rgba(255,255,255,0.15)'/><stop offset='100%' stop-color='rgba(0,0,0,0.2)'/></radialGradient><filter id='gs'><feDropShadow dx='0' dy='2' stdDeviation='3' flood-opacity='0.35'/></filter></defs><rect width='100' height='100' rx='22' fill='url(#gg)'/><rect width='100' height='100' rx='22' fill='url(#ggr)'/><text x='50' y='67' text-anchor='middle' font-size='48' font-weight='800' font-family='-apple-system,BlinkMacSystemFont,sans-serif' fill='rgba(255,255,255,0.92)' filter='url(#gs)' letter-spacing='1'>" + letter + "</text></svg>";
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='" + dark + "'/><stop offset='50%' stop-color='" + mid + "'/><stop offset='100%' stop-color='" + light + "'/></linearGradient><radialGradient id='r' cx='30%' cy='30%' r='70%'><stop offset='0%' stop-color='rgba(255,255,255,0.15)'/><stop offset='100%' stop-color='rgba(0,0,0,0.2)'/></radialGradient></defs><rect width='100' height='100' rx='22' fill='url(#g)'/><rect width='100' height='100' rx='22' fill='url(#r)'/><text x='50' y='67' text-anchor='middle' font-size='48' font-weight='800' font-family='-apple-system,BlinkMacSystemFont,sans-serif' fill='rgba(255,255,255,0.92)' letter-spacing='1'>" + letter + "</text></svg>";
+    return "data:image/svg+xml;base64," + btoa(svg);
 }
 
 async function loadGames() {

@@ -215,23 +215,27 @@ try {
 
 // ── Tab title + favicon spoofing ──
 try{
-  var PREFIX = '/api/proxy/';
-  if(location.pathname.indexOf(PREFIX)===0){
-    var originUrl = decodeURIComponent(location.pathname.substring(PREFIX.length));
-    var originHost = new URL(originUrl).hostname;
-    var pageTitle = document.title || originHost;
-    var faviconUrl = 'https://www.google.com/s2/favicons?domain='+encodeURIComponent(originHost)+'&sz=64';
-    var link = document.querySelector('link[rel="shortcut icon"],link[rel="icon"]');
-    if(!link){ link=document.createElement('link'); link.rel='shortcut icon'; document.head.appendChild(link); }
-    // Use actual site favicon if available
-    var icons = document.querySelectorAll('link[rel*="icon"]');
-    for(var i=0;i<icons.length;i++){
-      var h = icons[i].href;
-      if(h && h.indexOf('//')>0 && h.indexOf(PB)<0){ faviconUrl=h; break; }
+  var _path = location.pathname;
+  var _isProxied = _path.indexOf('/api/proxy/')===0 || _path.indexOf('/scramjet/')===0;
+  if(_isProxied){
+    var _pLen = _path.indexOf('/api/proxy/')===0 ? '/api/proxy/'.length : '/scramjet/'.length;
+    var _originUrl = decodeURIComponent(_path.substring(_pLen));
+    var _originHost = new URL(_originUrl).hostname;
+    var _pageTitle = document.title || _originHost;
+    var _link = document.querySelector('link[rel="shortcut icon"],link[rel="icon"]');
+    if(!_link){ _link=document.createElement('link'); _link.rel='shortcut icon'; document.head.appendChild(_link); }
+    var _icons = document.querySelectorAll('link[rel*="icon"]');
+    var _faviconUrl = '';
+    for(var _i=0;_i<_icons.length;_i++){
+      var _h = _icons[_i].href;
+      if(_h && _h.indexOf('//')>0){ _faviconUrl=_h; break; }
     }
-    link.href = faviconUrl;
-    document.title = pageTitle;
-    setInterval(function(){ document.title=pageTitle; link.href=faviconUrl; }, 1500);
+    if(!_faviconUrl || _faviconUrl.indexOf(PB)===0){
+      _faviconUrl = PB + encodeURIComponent('https://www.google.com/s2/favicons?domain='+encodeURIComponent(_originHost)+'&sz=64');
+    }
+    _link.href = _faviconUrl;
+    document.title = _pageTitle;
+    setInterval(function(){ document.title=_pageTitle; _link.href=_faviconUrl; }, 1500);
   }
 }catch(e){}
 
