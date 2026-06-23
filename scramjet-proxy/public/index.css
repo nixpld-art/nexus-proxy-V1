@@ -1101,6 +1101,26 @@ html, body {
     margin-top: 3px;
 }
 
+.games-search {
+    max-width: 400px;
+    margin: 0 auto 16px;
+}
+.games-search input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.games-search input:focus {
+    border-color: var(--accent);
+}
+
 .games-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

@@ -23,9 +23,9 @@ const AI_KEY = process.env.OPENAI_API_KEY || "";
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
 
 const HF_MODELS = [
+    "google/gemma-2-2b-it",
     "microsoft/Phi-3-mini-4k-instruct",
     "HuggingFaceH4/zephyr-7b-beta",
-    "google/gemma-2-2b-it",
     "mistralai/Mistral-7B-Instruct-v0.3",
 ];
 
@@ -53,6 +53,26 @@ async function askHuggingFace(messages) {
             if (text.trim()) return text.trim();
         } catch { continue; }
     }
+    return null;
+}
+
+async function askKoboldAi(messages) {
+    const lastMsg = messages.filter(m => m.role === "user").pop()?.content;
+    if (!lastMsg) return null;
+    try {
+        const ac = new AbortController();
+        setTimeout(() => ac.abort(), 30000);
+        const res = await fetch("https://lite.koboldai.net/api/v1/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: "User: " + lastMsg + "\nAssistant:", max_context_length: 512, max_length: 256, temperature: 0.7 }),
+            signal: ac.signal,
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const text = data.results?.[0]?.text || "";
+        if (text.trim()) return text.trim();
+    } catch { return null; }
     return null;
 }
 
@@ -515,7 +535,10 @@ fastify.post("/api/ai/chat", async (req, reply) => {
         const hfReply = await askHuggingFace(messages);
         if (hfReply) return reply.send({ choices: [{ message: { role: "assistant", content: hfReply } }] });
 
-        return reply.code(503).send({ error: "AI backend unavailable. Set GEMINI_API_KEY or OPENAI_API_KEY in env." });
+        const koboldReply = await askKoboldAi(messages);
+        if (koboldReply) return reply.send({ choices: [{ message: { role: "assistant", content: koboldReply } }] });
+
+        return reply.code(503).send({ error: "AI backend unavailable. Set GEMINI_API_KEY in env for a more reliable experience." });
     } catch (err) {
         return reply.code(500).send({ error: err.message });
     }

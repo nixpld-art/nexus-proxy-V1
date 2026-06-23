@@ -1,6 +1,6 @@
 {
 	"name": "stratus-proxy",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Stratus Proxy - A high-performance web proxy built on Scramjet.",
 	"type": "module",
 	"engines": {

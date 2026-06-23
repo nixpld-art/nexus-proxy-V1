@@ -1072,47 +1072,55 @@ function gameFallback(name) {
     return "data:image/svg+xml;base64," + btoa(svg);
 }
 
+let _allGames = [];
+
+function renderGames(games) {
+    const fileCount = {};
+    games.forEach(g => { fileCount[g.file] = (fileCount[g.file] || 0) + 1; });
+    const grid = document.getElementById("games-grid");
+    grid.innerHTML = "";
+    document.getElementById("game-count").textContent = games.length;
+    games.forEach((game) => {
+        const card = document.createElement("div");
+        card.className = "game-card";
+        const isShared = fileCount[game.file] > 1;
+        const fallback = gameFallback(game.name);
+        if (isShared) {
+            card.innerHTML = '<img src="' + fallback + '" alt="' + game.name + '"><div class="game-name">' + game.name + '</div>';
+        } else {
+            const imgSrc = "games/" + game.file.replace(".html", ".png");
+            card.innerHTML = '<img src="' + imgSrc + '" alt="' + game.name + '" onerror="this.src=\'' + fallback + '\'"><div class="game-name">' + game.name + '</div>';
+        }
+        card.addEventListener("click", async () => {
+            switchNav("proxy");
+            let id = activeTabId;
+            if (!id || !tabs.find((t) => t.id === id)) {
+                id = await createTab("/games/" + game.file);
+            }
+            navigateDirect(id, location.origin + "/games/" + game.file);
+            showFrogBar();
+        });
+        grid.appendChild(card);
+    });
+}
+
 async function loadGames() {
     try {
         const res = await fetch("/games/index.json");
         if (!res.ok) { document.getElementById("game-count").textContent = "0"; return; }
-        const games = await res.json();
-
-        // Track shared HTML files to detect duplicates
-        const fileCount = {};
-        games.forEach(g => { fileCount[g.file] = (fileCount[g.file] || 0) + 1; });
-
-        const grid = document.getElementById("games-grid");
-        grid.innerHTML = "";
-        document.getElementById("game-count").textContent = games.length;
-
-        games.forEach((game) => {
-            const card = document.createElement("div");
-            card.className = "game-card";
-            const isShared = fileCount[game.file] > 1;
-            // Use generated unique icon (per game name) for shared files, try PNG for unique ones
-            const fallback = gameFallback(game.name);
-            if (isShared) {
-                card.innerHTML = '<img src="' + fallback + '" alt="' + game.name + '"><div class="game-name">' + game.name + '</div>';
-            } else {
-                const imgSrc = "games/" + game.file.replace(".html", ".png");
-                card.innerHTML = '<img src="' + imgSrc + '" alt="' + game.name + '" onerror="this.src=\'' + fallback + '\'"><div class="game-name">' + game.name + '</div>';
-            }
-            card.addEventListener("click", async () => {
-                switchNav("proxy");
-                let id = activeTabId;
-                if (!id || !tabs.find((t) => t.id === id)) {
-                    id = await createTab("/games/" + game.file);
-                }
-                navigateDirect(id, location.origin + "/games/" + game.file);
-                showFrogBar();
-            });
-            grid.appendChild(card);
-        });
+        _allGames = await res.json();
+        renderGames(_allGames);
     } catch (e) { document.getElementById("game-count").textContent = "0"; }
 }
 
 loadGames();
+
+document.getElementById("games-search-input")?.addEventListener("input", function () {
+    const q = this.value.toLowerCase().trim();
+    if (!q) { renderGames(_allGames); return; }
+    const filtered = _allGames.filter(g => g.name.toLowerCase().includes(q));
+    renderGames(filtered);
+});
 
 /* ===== Home Shortcuts ===== */
 let shortcuts = parseJson(storageGet("stratus-shortcuts"), []);

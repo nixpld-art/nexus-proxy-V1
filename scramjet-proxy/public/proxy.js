@@ -48,7 +48,14 @@ const serverProxyEngine = {
         const iframe = document.createElement("iframe");
         iframe.style.cssText = "width:100%;height:100%;border:none;display:block";
         iframe.setAttribute("allow", "autoplay; fullscreen; clipboard-read; clipboard-write");
-        return { frame: iframe, go: (u) => { this.navigate({ frame: iframe }, u); } };
+        const _this = this;
+        return {
+            frame: iframe,
+            go: (u) => { _this.navigate({ frame: iframe }, u); },
+            back() { try { iframe.contentWindow?.history.back(); } catch {} },
+            forward() { try { iframe.contentWindow?.history.forward(); } catch {} },
+            reload() { try { iframe.contentWindow?.location.reload(); } catch {} },
+        };
     },
     encodeUrl(url) {
         url = ensureProtocol(url);
@@ -84,7 +91,14 @@ const directFallbackEngine = {
         const iframe = document.createElement("iframe");
         iframe.style.cssText = "width:100%;height:100%;border:none;display:block";
         iframe.setAttribute("allow", "autoplay; fullscreen; clipboard-read; clipboard-write");
-        return { frame: iframe, go: (u) => { this.navigate({ frame: iframe }, u); } };
+        const _this = this;
+        return {
+            frame: iframe,
+            go: (u) => { _this.navigate({ frame: iframe }, u); },
+            back() { try { iframe.contentWindow?.history.back(); } catch {} },
+            forward() { try { iframe.contentWindow?.history.forward(); } catch {} },
+            reload() { try { iframe.contentWindow?.location.reload(); } catch {} },
+        };
     },
     encodeUrl(url) { return ensureProtocol(url); },
     decodeUrl(url) { return url; },
