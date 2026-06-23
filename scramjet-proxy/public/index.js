@@ -1668,7 +1668,8 @@ aiForm.addEventListener("submit", async (e) => {
         aiHistory.push({ role: "assistant", content: reply });
     } catch (err) {
         aiRemoveLoading();
-        aiAddMsg("assistant", "Error: AI unavailable right now. Try again later.");
+        console.error("AI error:", err);
+        aiAddMsg("assistant", String(err));
     }
 });
 

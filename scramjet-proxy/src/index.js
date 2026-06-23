@@ -40,18 +40,34 @@ async function askHuggingFace(messages) {
     for (const model of HF_MODELS) {
         try {
             const ac = new AbortController();
-            setTimeout(() => ac.abort(), 20000);
+            setTimeout(() => ac.abort(), 60000);
             const res = await fetch("https://api-inference.huggingface.co/models/" + model, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 512, temperature: 0.7, return_full_text: false } }),
                 signal: ac.signal,
             });
-            if (!res.ok) { if (res.status === 503) continue; continue; }
+            if (res.status === 503) {
+                let wait = 10;
+                try { const errBody = await res.json(); wait = Math.min(errBody.estimated_time || 10, 20); } catch {}
+                await new Promise(r => setTimeout(r, wait * 1000));
+                const retry = await fetch("https://api-inference.huggingface.co/models/" + model, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 512, temperature: 0.7, return_full_text: false } }),
+                    signal: ac.signal,
+                });
+                if (!retry.ok) continue;
+                const data = await retry.json();
+                const text = Array.isArray(data) ? data[0]?.generated_text || "" : data.generated_text || "";
+                if (text.trim()) return text.trim();
+                continue;
+            }
+            if (!res.ok) { console.error("HF error", model, res.status, await res.text().catch(() => "")); continue; }
             const data = await res.json();
             const text = Array.isArray(data) ? data[0]?.generated_text || "" : data.generated_text || "";
             if (text.trim()) return text.trim();
-        } catch { continue; }
+        } catch (e) { console.error("HF exception", model, e.message); continue; }
     }
     return null;
 }
@@ -72,7 +88,7 @@ async function askKoboldAi(messages) {
         const data = await res.json();
         const text = data.results?.[0]?.text || "";
         if (text.trim()) return text.trim();
-    } catch { return null; }
+    } catch (e) { console.error("KoboldAI error:", e.message); }
     return null;
 }
 
