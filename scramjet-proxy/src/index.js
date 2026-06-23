@@ -200,17 +200,35 @@ try {
     var form = e.target;
     if (form && form.action && needsProxy(form.action)) {
       e.preventDefault();
-      var action = p(form.action);
       var method = (form.method || 'GET').toUpperCase();
-      if (method === 'GET') { location.href = action; }
-      else {
-        var fd = new FormData(form);
+      var baseUrl = p(form.action);
+      var fd = new FormData(form);
+      if (method === 'GET') {
+        var sep = baseUrl.indexOf('?') > -1 ? '&' : '?';
+        for (var pair of fd.entries()) baseUrl += sep + encodeURIComponent(pair[0]) + '=' + encodeURIComponent(pair[1]);
+        sep = '&';
+        location.href = baseUrl;
+      } else {
         var params = new URLSearchParams();
         for (var pair of fd.entries()) params.append(pair[0], pair[1]);
-        fetch(action, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).then(function(r){ location.href = action; });
+        fetch(baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }).then(function(r){ location.href = baseUrl; });
       }
     }
   }, true);
+} catch(e){}
+
+// ── location.assign/location.replace interceptor ──
+try {
+  var _locAssign = location.assign;
+  var _locReplace = location.replace;
+  location.assign = function(url) {
+    if (url && needsProxy(url)) { _locAssign.call(this, p(url)); }
+    else { _locAssign.call(this, url); }
+  };
+  location.replace = function(url) {
+    if (url && needsProxy(url)) { _locReplace.call(this, p(url)); }
+    else { _locReplace.call(this, url); }
+  };
 } catch(e){}
 
 // ── Tab title + favicon spoofing ──
